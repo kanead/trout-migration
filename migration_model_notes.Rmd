@@ -1,0 +1,199 @@
+---
+title: "Trout migration model"
+output:
+  html_notebook: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+### Model aims
+This model sets out to explore the effects of parasitisim and sexual antagonism on the propensity to marine migration in brown trout. 
+
+## Environment 
+The NetLogo simulation has two habitat types of equal size, freshwater and marine. They are each made up of 5000 patches.
+
+Fish start out in the freshwater and migrate to the marine habitat if they are anadromous. 
+
+The prop-parasites slider specifies the proportion of marine habitat patches that have parasites 
+
+## Setup
+The trout are created with the setup procedure and their starting population size is governed with n-trout. A random number generator assigns them to either sex with equal probability. The different sexes are treated as different model agents. 
+
+## Movement 
+Fish move around the freshwater habitat at random, simply jumping from one freshwater patch to any other freshwater patch. At sea, the fish do not move at all. 
+
+## Mortality
+### Carrying capactiy 
+There is an overall carrying capacity procedure that randomly kills the the fish if their population exceeds the limit. The limit is set by the carrying-capacity slider. 
+
+### Natural mortality 
+Fish have a sex-specific chance of death in freshwater set by mortalityM and mortalityF for males and females respectively. It works by randomly selecting a positive real number between 0 and 1, if this is less than the slider value the fish dies. 
+
+At sea there is a multiplier effect on this mortality which represents the increased dangers there. It is set by anad-death-multiplierM and anad-death-multiplierF for the two sexes. 
+
+## Migration
+Anadromous fish migrate to sea once they are over one year old on the 1st January. They stay at sea for two years and then return to the freshwater habitat on the 2nd January. If they survive they can continue to migrate to sea in this 'one year in freshwater, two years at sea' pattern. Females reproduce in February. This does mean that their anadromous offspring don't go to sea until 2 years after they're born. This is because the first time they experience a 1st of January they are less than a year old having been born the previous February. 
+
+Anadromous fish get a boost to a variable called quality. Resident fish have a quality drawn from a normal distribution of mean 100, sd 10; for anadromous fish this is mean shifted to mean 200, sd 10. However, if a fish at sea lands on a patch with parasites its quality is drawn from a normal with mean 150, sd 10. 
+
+This quality trait does not evolve. Females prefer males with higher quality and females with higher quality are more fecund. 
+
+## Reproduction
+
+### Timing
+Females start to breed after 365 days. Once they reproduce they have a countdown timer which says that at least another 365 days must pass before they can breed again. 
+
+### Mate selection
+Females can choose at most 5 males as mates. They have a radius (female-mate-radius) in which they can select a pool of potential mates.
+
+The interplay between resident and anadromous males works as follows: if the proportion of resident males within the female's radius is below a certain value (e.g. 0.1) then the females will preferentially select the residents with a proability of 0.9. Otherwise, if the resident proportion exceeds this 0.1 value they are selected with a much lower probability of 0.1. 
+
+The anadromous males are selected according to their quality trait. 
+
+### Fecundity 
+Female fecundity is a function of their quality. There is a logistic function in the model which takes the quality variable and outputs a value for fecundity i.e. the number of offsrping the females produce. 
+
+Females should be able to produce at most 9 offspring but only if they are unparasitised anadromous fish. 
+
+```{r}
+library(ggplot2)
+
+# sigmoid/ logistic function 
+sig <- function (x,x0,L,k) {
+  
+  fish <- L/(1+exp(-k*(x-x0)))
+}
+# pick values for x that map what the quality variable will be in the females 
+x <- c(80:220)
+y <- sig(x=x,x0=150,L=10,k=0.04)
+fec_data <- data.frame (cbind(x,y))
+# plot 
+ggplot(fec_data,aes(x=x,y=y)) + geom_point() + labs(x="quality",y="fecundity")
+```
+
+## Genetic architecture 
+
+In the explicit genetic model, there are 21 genes in a diploid system. This is a binomial system where each locus can be a 1 or a 0. The 21st locus is a neutral marker and has no genetic effect. 
+
+### Negative exponential weighting
+
+I want to control the expected additive genetic value for the threshold trait and to weight the contribution of each locus according to a negative exponential function. 
+
+I can set the expected additive genetic value (here, arbitrarilty set to 5) by solving for lambda with the following. 
+
+This is the same as $\sum_{i=1}^{20}e^{-\lambda i}=1$
+```{r}
+res <- optimize(function(lambda) (sum(exp(-lambda * (1:20))) - 5)^2, 0:1, tol = .Machine$double.eps)
+res$minimum
+```
+
+I can use this value of lambda as my input for the exponential function and get the weights for the 20 loci. 
+```{r}
+lambda <- res$minimum
+x <- 1:20
+y<-exp(-lambda*x);y
+```
+
+Check this on a plot to make sure it conforms to what we think is going on.
+```{r}
+library(ggplot2)
+data <- data.frame(cbind(x,y))
+ggplot(data,aes(x=x,y=y)) +  geom_point() + labs(x="locus",y="weight")
+```
+
+Check the sum of these weights which should equal the expected additive genetic value. 
+```{r}
+sum(y)
+```
+
+### Extracting mean and variance for threshold traits 
+
+We know the weights and the expected value but we also need to know the variance which we can use for the additive genetic variance $V_a$
+
+Given $n$ Bernoulli random variables $X_1, ..., X_{20}$ with the same parameter $p$ and weights $w_1, ..., w_{20}$, the expectation of their sum is:
+
+$E[\sum_i^nw_iX_i] = p\sum_i^nw_i$
+
+and the variance is:
+
+$Var[\sum_i^nw_iX_i] = \sum_i^nw_i^2Var[X_i]=p(1-p)\sum_i^nw_i^2$
+
+In the simple case of no weights we get:
+
+```{r}
+p <- 0.5
+n <- 20
+# No weights
+2 * n * p # Mean
+# [1] 20
+2 * n * p * (1 - p) # Variance
+# [1] 10
+```
+
+If we use the normal weights from above we get:
+
+```{r}
+# Weights
+2 * sum(y) * p # Mean
+2 * p * (1 - p) * sum(y^2) # Variance
+sqrt(2 * p * (1 - p) * sum(y^2)) # SD
+
+```
+
+If we modify the weights so that the first locus is sexually antagonistic in males we get:
+
+```{r}
+y<-exp(-lambda*x)
+y[1] <-  y[1]  * - 1
+y
+2 * sum(y) * p # Mean
+2 * p * (1 - p) * sum(y^2) # Variance, note variance is the same because the value is squared
+sqrt(2 * p * (1 - p) * sum(y^2)) # SD
+```
+
+Indeed we modify the weights for multiple loci. 
+```{r}
+y<-exp(-lambda*x)
+y[1] <-  y[1]  * - 1
+y[20] <- y[20] * -1
+y
+2 * sum(y) * p # Mean
+2 * p * (1 - p) * sum(y^2) # Variance, note variance is the same because the value is squared
+sqrt(2 * p * (1 - p) * sum(y^2)) # SD
+```
+
+The conflict? switch in the model sets whether this feature occurs. 
+
+### Threshold trait
+Males and females get a genetic value for the threshold trait according to their genome. The enviornmental component is set using $V_e$ which = $V_a$. The phenotypic value is based on the genetic and the environmental component. In NetLogo code it looks like:
+
+  set e_threshM random-normal 0 (sqrt(Ve))
+  
+  set z_threshM G + e_threshM
+  
+This phenotypic value is compared to the condition trait. 
+
+
+
+if an individual's condition is greater than its threshold value, it becomes resident (i.e. anadromous = 0) otherwise it becomes anadromous (anadromous = 1). 
+
+In the case of sexual conflict the condition value will tend to be above the male threshold value and we will get more residents initially. For females, it should be 50:50 because they have the same parameters of mean and SD for their normal distribution. 
+
+
+```{r ,include=T}
+library(ggplot2)
+males <- data.frame(length = rnorm(100000, 3.3, 1.373795))
+females <- data.frame(length = rnorm(100000, 5, 1.373795))
+condition <- data.frame(length=rnorm(1000000,5,1.373795))
+males$distribution <- 'male threshold'
+females$distribution <- 'female threshold'
+condition$distribution <- 'condition'
+Lengths <- rbind(males, females, condition)
+ggplot(Lengths, aes(length, fill = distribution)) + geom_density(alpha = 0.3) + geom_vline(xintercept = 5, linetype="dashed", 
+                color = "red", size=1) # the red line represents the mean of the condition trait 
+```
+
+
+
+
