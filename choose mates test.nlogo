@@ -41,7 +41,7 @@ to choose
       set availa-males availa-males with [ not member? self [mates] of myself ]
 
 ; assess the proportion of the '0' strategy in remaining available males
-      set prop_B ( count availa-males with [ strategy = 0 ] ) / n-max
+      set prop_B ( count availa-males with [ strategy = 0 ] ) / n-max ;- count availa-males with [  member? self [mates] of myself ]
 
       ; example probability choice, just meant to choose '0 strategy' males
       ; with a frequency disproportionate to availability
