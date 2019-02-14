@@ -58,7 +58,8 @@ turtles-own
 ;  my-month
 ]
 males-own
-[
+[ start_quality
+  prop_rivals ; variable in the sneaker procedure; could be specified using 'let'
 ;  mu_thresh
 ;  h2
 ;  Vp
@@ -130,8 +131,8 @@ to setup
    sprout 1
     [
     ifelse random 2 = 1
-      [set breed males set sex "male" set color grey]
-      [set breed females set sex "female" set color red]
+      [set breed males set sex "male" set color red]
+      [set breed females set sex "female" set color grey]
 
     set state "healthy"
     set size 2         ; represents size of the fish on screen, purely aesthetic
@@ -175,6 +176,37 @@ to setup
 end
 
 
+to set-migratory-behaviour
+  ;; This mathematical operation can be optimzed in terms of space: weight1*(locus1.1+locus1.2), and so on...
+  set G   (weight1 * locus1.1) + (weight1 * locus1.2) + (weight2 * locus2.1) + weight2 * (locus2.2) + (weight3 * locus3.1) + (weight3 * locus3.2) + (weight4 * locus4.1) + (weight4 * locus4.2)
+      + (weight5 * locus5.1) + (weight5 * locus5.2) + (weight6 * locus6.1) + (weight6 * locus6.2) + (weight7 * locus7.1) + (weight7 * locus7.2) + (weight8 * locus8.1) + (weight8 * locus8.2)
+      + (weight9 * locus9.1) + (weight9 * locus9.2) + (weight10 * locus10.1) + (weight10 * locus10.2) + (weight11 * locus11.1) + (weight11 * locus11.2) + (weight12 * locus12.1) + (weight12 * locus12.2)
+      + (weight13 * locus13.1) + (weight13 * locus13.2) + (weight14 * locus14.1) + (weight14 * locus14.2) + (weight15 * locus15.1) + (weight15 * locus15.2) + (weight16 * locus16.1) + (weight16 * locus16.2)
+      + (weight17 * locus17.1) + (weight17 * locus17.2) + (weight18 * locus18.1) + (weight18 * locus18.2) + (weight19 * locus19.1) + (weight19 * locus19.2) + (weight20 * locus20.1) + (weight20 * locus20.2) ; + locus21.1 + locus21.2
+
+    set Va 1.17
+    set Ve 1.17
+    set Vp 2.34
+
+    if conflict? and sex = "male"
+     [
+        set G  (G - ((weight1 * locus1.1) + (weight1 * locus1.2)) + ((weight1 * locus1.1 * -1) + (weight1 * locus1.2 * -1)))
+        set Va 1.17
+        set Ve 1.17
+        set Vp 2.34
+     ]
+
+    set e_thresh random-normal 0 (sqrt(Ve))
+    set z_thresh G + e_thresh
+    set cond random-normal mu_cond  sqrt(V_cond)
+    ifelse(cond > z_thresh)
+     [set anadromous false  set quality random-normal res_quality_mean res_quality_sd] ; 100 10
+     [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
+      ask males with [ anadromous =  false] [set start_quality quality]
+    set habitat "fresh"
+end
+
+
 to go
   if ticks mod 364 = 0 [set year year + 1]
   if year = 500 [ stop]
@@ -207,38 +239,20 @@ to go
 
   ask females with [age > 0 and  pcolor = cyan and  my-month = 2 and days-since-child >= 365] [reproduce]
 
+ if sneaker?
+ [
+  ask males with [age > 365 and anadromous =  false] [sneaker]
+  ]
   tick
 end
 
-to set-migratory-behaviour
-  ;; This mathematical operation can be optimzed in terms of space: weight1*(locus1.1+locus1.2), and so on...
-  set G   (weight1 * locus1.1) + (weight1 * locus1.2) + (weight2 * locus2.1) + weight2 * (locus2.2) + (weight3 * locus3.1) + (weight3 * locus3.2) + (weight4 * locus4.1) + (weight4 * locus4.2)
-      + (weight5 * locus5.1) + (weight5 * locus5.2) + (weight6 * locus6.1) + (weight6 * locus6.2) + (weight7 * locus7.1) + (weight7 * locus7.2) + (weight8 * locus8.1) + (weight8 * locus8.2)
-      + (weight9 * locus9.1) + (weight9 * locus9.2) + (weight10 * locus10.1) + (weight10 * locus10.2) + (weight11 * locus11.1) + (weight11 * locus11.2) + (weight12 * locus12.1) + (weight12 * locus12.2)
-      + (weight13 * locus13.1) + (weight13 * locus13.2) + (weight14 * locus14.1) + (weight14 * locus14.2) + (weight15 * locus15.1) + (weight15 * locus15.2) + (weight16 * locus16.1) + (weight16 * locus16.2)
-      + (weight17 * locus17.1) + (weight17 * locus17.2) + (weight18 * locus18.1) + (weight18 * locus18.2) + (weight19 * locus19.1) + (weight19 * locus19.2) + (weight20 * locus20.1) + (weight20 * locus20.2) ; + locus21.1 + locus21.2
+to sneaker
+  let availa-rivals males in-radius 5
+  let rivals availa-rivals with [anadromous = true]
+  set prop_rivals count availa-rivals with [anadromous = true] / count availa-rivals
+  ifelse prop_rivals > 0.8 [set quality start_quality + 100  ] [set quality start_quality]
 
-    set Va 1.17
-    set Ve 1.17
-    set Vp 2.34
-
-    if conflict? and sex = "male"
-     [
-        set G  (G - ((weight1 * locus1.1) + (weight1 * locus1.2)) + ((weight1 * locus1.1 * -1) + (weight1 * locus1.2 * -1)))
-        set Va 1.17
-        set Ve 1.17
-        set Vp 2.34
-     ]
-
-    set e_thresh random-normal 0 (sqrt(Ve))
-    set z_thresh G + e_thresh
-    set cond random-normal mu_cond  sqrt(V_cond)
-    ifelse(cond > z_thresh)
-     [set anadromous false  set quality random-normal res_quality_mean res_quality_sd] ; 100 10
-     [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
-    set habitat "fresh"
 end
-
 
 to migrate
   if age > 365 and my-month = 1 and my-day = 1
@@ -301,42 +315,50 @@ to choose-mates ; females choose up to 5 male mates from a pool in their radius
     ; set a cap on possible mates for females; 5, or the number
     ; available within the radius if less than 5
 
-    set availa-males males in-radius female-mate-radius with [pcolor = cyan and age > 365]
-    let n-max count availa-males
-    set max-mate-count ifelse-value ( n-max < 5 ) [ n-max ] [ 5 ] ; 5 5
+;    set availa-males males in-radius female-mate-radius with [pcolor = cyan and age > 365]
+;    let n-max count availa-males
+;    set max-mate-count ifelse-value ( n-max < 5 ) [ n-max ] [ 5 ] ; 5 5
 
     ; Until a female has chosen up to her maximum number of mates:
-    while [ mate-count < max-mate-count ]
-     [
+;    while [ mate-count < max-mate-count ]
+;     [
       ; determine which available males are not already in her 'mates' agentset
-      set availa-males availa-males with [ not member? self [mates] of myself ]
+;      set availa-males availa-males with [ not member? self [mates] of myself ]
 
       ; assess the proportion of resident strategy in remaining available males
-      let prop_B ( count availa-males with [ anadromous = false ] ) / n-max
+;      let prop_B ( count availa-males with [ anadromous = false ] ) / n-max
 
 
       ; example probability choice, just meant to choose B males
       ; with a frequency disproportionate to availability
-      let proba_B ifelse-value ( prop_B <= 0.1 ) [ sneaker_yes ] [ sneaker_no ] ; if residents make up x% or less of the mating pool select them according to the first box, if greater select, according to the second
+;      let proba_B ifelse-value ( prop_B <= 0.1 ) [ sneaker_yes ] [ sneaker_no ] ; if residents make up x% or less of the mating pool select them according to the first box, if greater select, according to the second
 
       ; use a random float to determine which strategy type is chosen
-      set mates ( turtle-set mates
-        ifelse-value ( random-float 1 < proba_B )
-        [ one-of availa-males with [ anadromous = false] ]
-        [ rnd:weighted-one-of availa-males with [ anadromous = true ] [ quality ]]  )
+;      set mates ( turtle-set mates
+;        ifelse-value ( random-float 1 < proba_B )
+;        [ one-of availa-males with [ anadromous = false] ]
+;        [ rnd:weighted-one-of availa-males with [ anadromous = true ] [ quality ]]  )
 
       ; count the current mates to break the while loop once
       ; the maximum number of mates is reached
-      set mate-count count mates
-    ]      ; have the female's males add her to their own mates agentset
+;      set mate-count count mates
+;    ]      ; have the female's males add her to their own mates agentset
 
-    ask mates [ set mates ( turtle-set mates myself ) ]
+;    ask mates [ set mates ( turtle-set mates myself ) ]
 
-    if n-max < count mates [ print  "Fewer available males than mates" ]
+;    if n-max < count mates [ print  "Fewer available males than mates" ]
 
     ;  set a_threshM [a_threshM] of mates
 
  ;    ]
+
+  set availa-males males in-radius female-mate-radius with [pcolor = cyan and age > 365]
+  set max-mate-count min (list 5 count availa-males)
+  let new-mates rnd:weighted-n-of max-mate-count availa-males [ quality ]
+  set mates (turtle-set mates new-mates)
+  ask new-mates
+  [ set mates (turtle-set mates myself)
+  ]
 end
 
 
@@ -455,7 +477,7 @@ end
 
 ;; kill turtles in excess of carrying capacity
 to grim-reaper
-  let num-turtles count turtles
+  let num-turtles count turtles with [pcolor = cyan]
 ;  if num-turtles <= carrying-capacity [ stop ]
   let chance-to-die (num-turtles - carrying-capacity) / num-turtles
   ask turtles with [pcolor = cyan]
@@ -998,7 +1020,7 @@ INPUTBOX
 142
 241
 anad-death-multiplierM
-100.0
+2.0
 1
 0
 Number
@@ -1035,7 +1057,7 @@ INPUTBOX
 138
 378
 anad-death-multiplierF
-1.0
+2.0
 1
 0
 Number
@@ -1049,7 +1071,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-0.0
+4.0
 1
 1
 NIL
@@ -1085,7 +1107,7 @@ carrying-capacity
 carrying-capacity
 0
 100000
-57325.0
+300.0
 1
 1
 NIL
@@ -1631,7 +1653,7 @@ MONITOR
 776
 490
 Prop anad male
-count males with [anadromous = 1] / count males
+count males with [anadromous = true] / count males
 3
 1
 11
@@ -1642,30 +1664,10 @@ MONITOR
 891
 489
 Prop anad female
-count females with [anadromous = 1] / count females
+count females with [anadromous = true] / count females
 3
 1
 11
-
-CHOOSER
-9
-700
-147
-745
-sneaker_yes
-sneaker_yes
-0.9 0.5
-1
-
-CHOOSER
-8
-650
-146
-695
-sneaker_no
-sneaker_no
-0.5 0.1
-0
 
 INPUTBOX
 1134
@@ -1732,6 +1734,27 @@ paras_quality_sd
 1
 0
 Number
+
+SWITCH
+422
+483
+527
+516
+sneaker?
+sneaker?
+1
+1
+-1000
+
+TEXTBOX
+539
+493
+689
+511
+sneaker tactic by residents
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

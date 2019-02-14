@@ -1,94 +1,54 @@
-extensions [matrix]
-globals [WM WMT ]
-turtles-own [GM GM_WMT G sex mates mother father preGM preGM2]
+extensions [rnd]
 
-  to-report fill-matrix [n m generator]
-  report matrix:from-row-list n-values n [n-values m [runresult generator]]
-  end
-
-
+turtles-own
+[ sex
+  strategy
+  quality
+  prop_rivals
+  start_quality
+  ]
+breed [males male]
+breed [females female]
 
 to setup
   clear-all
- crt 100
- ; print GM
-;  print "GM"
-; print matrix:dimensions GM  ; row then columns
+  create-males 100 [set sex "M"]
+  create-females 1 [set color blue set sex "F"]
+  ask turtles
+  [ setxy random-xcor random-ycor
+    ifelse random 10 = 1 [set strategy  0] [set strategy 1]
+  ;  set mates nobody
+  ]
 
- set WM matrix:from-row-list [[
-  0.83734004
-  0.70113835
-  0.58709121
-  0.49159498
-  0.41163216
-  0.34467609
-  0.28861109
-  0.24166563
-  0.2023563
-  0.16944104
-  0.14187977
-  0.11880161
-  0.09947734
-  0.08329636
-  0.06974738
-  0.05840227
-  0.04890256
-  0.04094807
-  0.03428746
-  0.02871027
-  0
-  ]]
-
-
-; print WM
-; print "WM"
-; print matrix:dimensions WM  ; row then columns
-
-   ask turtles [
-    ifelse random 50 = 1 [ set sex "female" set color grey ] [ set sex "male" set color red]
-    setxy random-xcor random-ycor
-     set GM fill-matrix 1 21 [-> random 3]
-    set-migratory-behaviour]
+  ask males with [strategy = 1] [set quality random-normal 200 10]
+  ask males with [strategy = 0] [set quality random-normal 100 10]
+  ask males with [strategy = 0] [set start_quality quality]
+  ask males [ifelse strategy = 1 [set color red] [set color grey] ]
 
   reset-ticks
 end
 
-to set-migratory-behaviour
-set WMT matrix:transpose WM
-;  print matrix:dimensions WM  ; row then columns
-;  print matrix:dimensions WMT  ; row then columns
-set GM_WMT  matrix:times GM WMT
-set G matrix:get GM_WMT 0 0
-
-
-end
-
 to go
-
-  ask turtles with [sex = "female"] [choose reproduce]
+  ask males
+  [ fd 1
+  ]
+  ask males with [strategy = 0] []
   tick
 end
 
 to choose
-  set mates n-of 1 turtles with [sex = "male"] in-radius 5
+  let availa-males males in-radius 5
+  let max-mate-count min (list 5 count availa-males)
+  let rivals availa-males with [strategy = 1]
+  set prop_rivals count availa-males with [strategy = 1] / count availa-males
+  ifelse prop_rivals > 0.8 [set quality start_quality + 100  ] [set quality start_quality]
 end
 
-to reproduce
-  hatch 1 [set color blue
-    set mother myself
-    set father one-of [mates] of mother
-    let motherGM [GM] of mother
-    let fatherGM [GM] of father
-    set preGM  (motherGM matrix:+ fatherGM)
-    set preGM2 matrix:times 0.5 preGM
-  ]
+to-report strategy-weight [ #strategy ]
+  if #strategy = 1 [ report 0.2 ]
+  if #strategy = 0 [ report 0.8 ]
+  report 0
 end
-
-;During transmission of genes, you just have to sum the matrix of the mother and the matrix of the father and divide by 2.
-; Then you have to check each element; if the element of the resulting matrix is 0 (0 + 0), 1 (either 2 + 0 or 0 + 2 or 1 + 1),
-;or 2 (1 + 1) it remains the same;
-;if it’s 0.5 (either 1 + 0 or 0 + 1) then you get a random draw “random 2” and decide randomly whether is 0 or 1;
-;it happens the same as with 1.5 (either 2 + 1 or 1 + 2). You calculate then G in the same ways as at initialization
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -118,10 +78,10 @@ ticks
 30.0
 
 BUTTON
-61
 24
-124
-57
+31
+87
+64
 NIL
 setup
 NIL
@@ -134,43 +94,14 @@ NIL
 NIL
 1
 
-PLOT
-665
-14
-865
-164
-G
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 0.5 1 -16777216 true "" "histogram [G] of turtles "
-
-MONITOR
-667
-180
-757
-225
-females
-count turtles with [sex = \"female\"]
-17
-1
-11
-
 BUTTON
-64
-61
-127
-94
+26
+68
+89
+101
 NIL
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -179,6 +110,39 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+17
+136
+98
+181
+anadromous
+count males with [strategy = 1]
+17
+1
+11
+
+MONITOR
+102
+136
+160
+181
+resident
+count males with [strategy = 0]
+17
+1
+11
+
+MONITOR
+798
+178
+855
+223
+Quality
+mean [quality] of males with [strategy = 0]
+2
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
