@@ -81,7 +81,19 @@ to reproduce
     let fatherGM [GM] of father
     set preGM  (motherGM matrix:+ fatherGM)
     set preGM2 matrix:times 0.5 preGM
+    set GM matrix:map [ i -> val-change i ] preGM2
+    set-migratory-behaviour
   ]
+end
+
+to-report val-change [ val ]
+  if val = 0.5 [
+    report random 2
+  ]
+  if val = 1.5 [
+    report 1 + random 2
+  ]
+  report val
 end
 
 ;During transmission of genes, you just have to sum the matrix of the mother and the matrix of the father and divide by 2.
