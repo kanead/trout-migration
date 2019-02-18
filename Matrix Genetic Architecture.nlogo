@@ -1,6 +1,6 @@
 extensions [matrix]
 globals [WM WMT ]
-turtles-own [GM GM_WMT G sex mates mother father preGM preGM2]
+turtles-own [GM GM_WMT G sex mates mother father preGM preGM2  ]
 
   to-report fill-matrix [n m generator]
   report matrix:from-row-list n-values n [n-values m [runresult generator]]
@@ -86,6 +86,7 @@ set GM_WMT  matrix:times GM WMT
 set G matrix:get GM_WMT 0 0
 
 
+
 end
 
 to go
@@ -122,6 +123,12 @@ to-report val-change [ val ]
   report val
 end
 
+to-report matrix-power [ mat n ]
+  repeat n - 1 [
+    set mat matrix:times-element-wise GM 1
+  ]
+  report mat
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
