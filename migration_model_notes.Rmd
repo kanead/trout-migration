@@ -84,7 +84,7 @@ I can set the expected additive genetic value (here, arbitrarilty set to 5) by s
 
 This is the same as $\sum_{i=1}^{20}e^{-\lambda i}=1$
 ```{r}
-res <- optimize(function(lambda) (sum(exp(-lambda * (1:20))) - 5)^2, 0:1, tol = .Machine$double.eps)
+res <- optimize(function(lambda) (sum(exp(-lambda * (1:20))) - 10)^2, 0:1, tol = .Machine$double.eps)
 res$minimum
 ```
 
@@ -183,9 +183,9 @@ In the case of sexual conflict the condition value will tend to be above the mal
 
 ```{r ,include=T}
 library(ggplot2)
-males <- data.frame(length = rnorm(100000, 3.3, 1.373795))
-females <- data.frame(length = rnorm(100000, 5, 1.373795))
-condition <- data.frame(length=rnorm(1000000,5,1.373795))
+males <- data.frame(length = rnorm(100000, 8.143932, 1.7167))
+females <- data.frame(length = rnorm(100000, 10, 1.7167))
+condition <- data.frame(length=rnorm(1000000,10,1.7167))
 males$distribution <- 'male threshold'
 females$distribution <- 'female threshold'
 condition$distribution <- 'condition'

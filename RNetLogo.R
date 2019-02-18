@@ -13,97 +13,101 @@ library(tidyverse)
 NLStart("C:\\Program Files\\NetLogo 6.0.4\\app", gui = T, nl.jarname = "netlogo-6.0.4.jar")
 
 #' path to the model on my desktop
-#NLLoadModel("C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration-full-time.nlogo")
-
+NLLoadModel("C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\trout-migration-full-time-matrix.nlogo")
 #' path to the model on my laptop
-NLLoadModel("C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\trout-migration-full-time-DA.nlogo")
+#' NLLoadModel("C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\trout-migration-full-time-DA.nlogo")
+
+#' change the parameter values 
+#' 
+#' starting population of trout 
+NLCommand("set n-trout 5")
+
+#' male freshwater mortality 
+NLCommand("set mortalityM 1e-05")
+
+#' female freshwater mortality 
+NLCommand("set mortalityF 1e-05")
+
+#' male marine mortality multiplier
+NLCommand("set anad-death-multiplierM 2")
+
+#' female marine mortality multiplier
+NLCommand("set anad-death-multiplierF 2")
+
+#' cost of being parasitised multiplier
+NLCommand("set parasite-load 3")
+
+#' range that females can see potential mates
+NLCommand("set female-mate-radius 3")
+
+#' freshwater carrying capacity
+NLCommand("set carrying-capacity 200")
+
+#' proportion of marine patches that have parasites
+NLCommand("set prop-parasites 0.1")
+
+#' sexual conflict on the first locus of the males on or off
+NLCommand("set conflict? FALSE")
+
+#' sneaker tactic by resident males on or off
+NLCommand("set sneaker? FALSE")
+
+#' mean quality of resident trout 
+NLCommand("set res_quality_mean 100")
+
+#' SD quality of resident trout 
+NLCommand("set res_quality_sd 10")
+
+#' mean quality of parasitised trout 
+NLCommand("set paras_quality_mean 150")
+
+#' SD quality of parasitised trout 
+NLCommand("set paras_quality_sd 10")
+
+#' mean quality of marine trout 
+NLCommand("set anad_quality_mean 200")
+
+#' SD quality of marine trout 
+NLCommand("set anad_quality_sd 10")
 
 #' setup the model 
 NLCommand("setup")
 
-#' run it for 1000 ticks 
-NLDoCommand(1000, "go")
+#' test the model
+#' run it for 100 ticks 
+NLDoCommand(100, "go")
 
-#' specifiy the variables we won't to collect from the model
-vars <- c("who", "g")
-
-#' set up a reporter to collect data on the genotype of the males
-agents <- "males"
-reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
-nlogo_ret <- RNetLogo::NLReport(reporters)
-df1 <- data.frame(nlogo_ret, stringsAsFactors = FALSE)
-names(df1) <- vars
-df1
-#' examine the values
-summary(df1$g)
-hist(df1$g)
-
-#' set up a reporter to collect data on the genotype of the females
-agents <- "females"
-reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
-nlogo_ret <- RNetLogo::NLReport(reporters)
-df2 <- data.frame(nlogo_ret, stringsAsFactors = FALSE)
-names(df2) <- vars
-df2
-#' examine the values
-summary(df2$g)
-hist(df2$g)
-
-#' run the model for 5 by 1000 ticks and extract the reporters (the genotype)
-#' every 1000 ticks
-test <- NLDoReport(5, "repeat 1000 [go]", c("ticks",reporters), as.data.frame=T, df.col.names=c("ticks",reporters)) 
-print(test) 
-class(test)
-test$`map [x -> [g] of x ] sort females`
-
-g_female <- test$`map [x -> [g] of x ] sort females`
-
-hist(unlist(g_female[1]))
-
-#' plot individual histograms for each sampling period in base R
-for (i in seq_along(g_female)) { 
-  hist(g_female[[i]])
-}
-
-#' plot box plots for each sampling period using ggplot
-p1 <- data.frame(x = unlist(g_female), 
-                 grp = rep(letters[1:length(g_female)],times = sapply(g_female,length)))
-ggplot(p1,aes(x = grp, y = x)) + geom_boxplot()
-
-#' Plot histograms for each sampling period using ggplot
-#' this uses facet wrap to plot individual histograms  
-p2 <- data.frame(x = unlist(g_female), 
-                 grp = rep(letters[1:length(g_female)],times = sapply(g_female,length)))
-
-ggplot(p2) + 
-  geom_histogram(aes(x)) + 
-  facet_wrap(~grp)
+#' setup the model again after the test
+NLCommand("setup")
 
 #' set up a reporter to collect data on the genotype of both sexes
-vars <- c("ticks", "who", "g" ,"sex", "anadromous")
+vars <- c("ticks", "who", "g" ,"sex", "anadromous", "gm_val")
 agents <- "turtles"
 reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
 nlogo_ret <- RNetLogo::NLReport(reporters)
-df3 <- data.frame(nlogo_ret, stringsAsFactors = FALSE)
-names(df3) <- vars
-df3
+#df1 <- data.frame(nlogo_ret, stringsAsFactors = FALSE)
+#names(df1) <- vars
+#df1
 #' examine the values, note this combines the values for both sexes
-summary(df3$g)
-hist(df3$g)
+#summary(df1$g)
+#hist(df1$g)
 
-#' run the model for 5 by 1000 ticks and extract the reporters (the genotype)
+#' run the model for 5 x 1000 ticks and extract the reporters (the genotype)
 #' every 1000 ticks
-test <- NLDoReport(5, "repeat 1000 [go]", c("ticks",reporters), as.data.frame=T, df.col.names=c("ticks",reporters)) 
+test <- NLDoReport(5, "repeat 100 [go]", c("ticks",reporters), as.data.frame=T, df.col.names=c("ticks",reporters)) 
 print(test) 
 class(test)
 test$`map [x -> [g] of x ] sort turtles`
 
-mydata <- data.frame(cbind(unlist(test$`map [x -> [sex] of x ] sort turtles`)
-,unlist(test$`map [x -> [g] of x ] sort turtles`), unlist(test$`map [x -> [ticks] of x ] sort turtles`),unlist(test$`map [x -> [anadromous] of x ] sort turtles`)
-))
+mydata <- data.frame(cbind(unlist(test$`map [x -> [sex] of x ] sort turtles`),
+                           unlist(test$`map [x -> [g] of x ] sort turtles`), 
+                           unlist(test$`map [x -> [ticks] of x ] sort turtles`),
+                           unlist(test$`map [x -> [anadromous] of x ] sort turtles`),
+                           unlist(test$`map [x -> [who] of x ] sort turtles`)
+                           ))
 
 #' rename the variables
-mydata <- rename(mydata, sex = X1, g = X2, iteration = X3, anadromous = X4)
+mydata <- rename(mydata, sex = X1, g = X2, iteration = X3, anadromous = X4,  who = X5)
 head(mydata)
 
 #' make sure g is classified as numeric
@@ -147,6 +151,25 @@ p2 <- data.frame(x = unlist(g_female),
 ggplot(p2) + 
   geom_histogram(aes(x)) + 
   facet_wrap(~grp)
+
+
+
+#' can extract the allele frequencies
+alleleFreq <- data.frame(cbind(unlist(test$`map [x -> [gm_val] of x ] sort turtles`)))
+head(alleleFreq)                           
+
+#' rename 
+alleleFreq <- rename(alleleFreq, gm_val = cbind.unlist.test..map..x.....gm_val..of.x...sort.turtles...)
+head(alleleFreq)                           
+tail(alleleFreq,21)
+length(alleleFreq$gm_val)/21
+
+#' extract them for each fish 
+#' check this again to make sure it matches up!
+lst <- split(alleleFreq$gm_val, (seq_along(alleleFreq$gm_val)-1) %% 21 +1); do.call(cbind, lapply(lst, "length<-", max(lengths(lst))))
+
+#' stick them all together with the rest of the data
+cbind(mydata,lst)
 
 ##### NetLogo Parallelization  ----
 
