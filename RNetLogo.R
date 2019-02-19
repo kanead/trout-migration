@@ -10,17 +10,19 @@ library(ggplot2)
 library(tidyverse)
 
 #' identify the location of NetLogo 
+#' this returns an error code but it still works
 NLStart("C:\\Program Files\\NetLogo 6.0.4\\app", gui = T, nl.jarname = "netlogo-6.0.4.jar")
 
 #' path to the model on my desktop
 NLLoadModel("C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\trout-migration-full-time-matrix.nlogo")
+
 #' path to the model on my laptop
-#' NLLoadModel("C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\trout-migration-full-time-DA.nlogo")
+NLLoadModel("C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\trout-migration-full-time-matrix.nlogo")
 
 #' change the parameter values 
 #' 
 #' starting population of trout 
-NLCommand("set n-trout 5")
+NLCommand("set n-trout 100")
 
 #' male freshwater mortality 
 NLCommand("set mortalityM 1e-05")
@@ -85,16 +87,10 @@ vars <- c("ticks", "who", "g" ,"sex", "anadromous", "gm_val")
 agents <- "turtles"
 reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
 nlogo_ret <- RNetLogo::NLReport(reporters)
-#df1 <- data.frame(nlogo_ret, stringsAsFactors = FALSE)
-#names(df1) <- vars
-#df1
-#' examine the values, note this combines the values for both sexes
-#summary(df1$g)
-#hist(df1$g)
 
-#' run the model for 5 x 1000 ticks and extract the reporters (the genotype)
-#' every 1000 ticks
-test <- NLDoReport(5, "repeat 100 [go]", c("ticks",reporters), as.data.frame=T, df.col.names=c("ticks",reporters)) 
+#' run the model for x by y ticks and extract the reporters 
+#' every y ticks
+test <- NLDoReport(10, "repeat 1000 [go]", c("ticks",reporters), as.data.frame=T, df.col.names=c("ticks",reporters)) 
 print(test) 
 class(test)
 test$`map [x -> [g] of x ] sort turtles`
@@ -133,26 +129,9 @@ filter(mydata, sex == "male", anadromous=="FALSE") %>% ggplot(.) +
   geom_histogram(aes(g)) + 
   facet_wrap(~iteration)
 
-#' plot individual histograms for each sampling period in base R
-for (i in seq_along(g_female)) { 
-  hist(g_female[[i]])
-}
-
-#' plot box plots for each sampling period using ggplot
-p1 <- data.frame(x = unlist(g_female), 
-                grp = rep(letters[1:length(g_female)],times = sapply(g_female,length)))
-ggplot(p1,aes(x = grp, y = x)) + geom_boxplot()
-
-#' Plot histograms for each sampling period using ggplot
-#' this uses facet wrap to plot individual histograms  
-p2 <- data.frame(x = unlist(g_female), 
-                grp = rep(letters[1:length(g_female)],times = sapply(g_female,length)))
-
-ggplot(p2) + 
-  geom_histogram(aes(x)) + 
-  facet_wrap(~grp)
-
-
+#' boxplots
+mydata %>% ggplot(.) + 
+  geom_boxplot(aes(x=iteration,y=g))  
 
 #' can extract the allele frequencies
 alleleFreq <- data.frame(cbind(unlist(test$`map [x -> [gm_val] of x ] sort turtles`)))
@@ -170,6 +149,44 @@ lst <- split(alleleFreq$gm_val, (seq_along(alleleFreq$gm_val)-1) %% 21 +1); do.c
 
 #' stick them all together with the rest of the data
 cbind(mydata,lst)
+mydata <- cbind(mydata,lst)
+
+#' matrix multiplication for genetic architecture
+#' weights matrix
+WM <- matrix(c(
+0.9280339,
+0.8612468,
+0.7992662,
+0.7417461,
+0.6883655,
+0.6388265,
+0.5928526,
+0.5501873,
+0.5105924,
+0.4738471,
+0.4397461,
+0.4080993,
+0.3787300,
+0.3514742,
+0.3261800,
+0.3027061,
+0.2809215,
+0.2607046,
+0.2419427,
+0.2245310,
+0),ncol=21)
+dim(WM)
+
+#' genotype matrix
+GM <- matrix(sample(0:2,size = 21,replace = T),ncol=21)
+dim(GM)
+
+#' transpose of weights matrix
+WMt <- t(WM)
+
+#' multiply genotype matrix by transpose of weights matrix
+#' this produces the genetic value
+GM %*% WMt
 
 ##### NetLogo Parallelization  ----
 
