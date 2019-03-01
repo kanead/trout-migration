@@ -1,53 +1,18 @@
-extensions [rnd]
-
-turtles-own
-[ sex
-  strategy
-  quality
-  prop_rivals
-  start_quality
-  ]
-breed [males male]
-breed [females female]
+extensions [time]
+globals [dt]
 
 to setup
-  clear-all
-  create-males 100 [set sex "M"]
-  create-females 1 [set color blue set sex "F"]
-  ask turtles
-  [ setxy random-xcor random-ycor
-    ifelse random 10 = 1 [set strategy  0] [set strategy 1]
-  ;  set mates nobody
-  ]
-
-  ask males with [strategy = 1] [set quality random-normal 200 10]
-  ask males with [strategy = 0] [set quality random-normal 100 10]
-  ask males with [strategy = 0] [set start_quality quality]
-  ask males [ifelse strategy = 1 [set color red] [set color grey] ]
-
-  reset-ticks
+clear-all
+    set dt time:create "2000/01/01 10:00"
+  crt 10
+reset-ticks
 end
+
 
 to go
-  ask males
-  [ fd 1
-  ]
-  ask males with [strategy = 0] []
+  set dt time:plus dt 1 "days"
+  ask turtles [fd 1]
   tick
-end
-
-to choose
-  let availa-males males in-radius 5
-  let max-mate-count min (list 5 count availa-males)
-  let rivals availa-males with [strategy = 1]
-  set prop_rivals count availa-males with [strategy = 1] / count availa-males
-  ifelse prop_rivals > 0.8 [set quality start_quality + 100  ] [set quality start_quality]
-end
-
-to-report strategy-weight [ #strategy ]
-  if #strategy = 1 [ report 0.2 ]
-  if #strategy = 0 [ report 0.8 ]
-  report 0
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -78,9 +43,9 @@ ticks
 30.0
 
 BUTTON
-24
+70
 31
-87
+133
 64
 NIL
 setup
@@ -95,10 +60,10 @@ NIL
 1
 
 BUTTON
-26
-68
-89
-101
+72
+69
+135
+102
 NIL
 go
 T
@@ -110,39 +75,6 @@ NIL
 NIL
 NIL
 1
-
-MONITOR
-17
-136
-98
-181
-anadromous
-count males with [strategy = 1]
-17
-1
-11
-
-MONITOR
-102
-136
-160
-181
-resident
-count males with [strategy = 0]
-17
-1
-11
-
-MONITOR
-798
-178
-855
-223
-Quality
-mean [quality] of males with [strategy = 0]
-2
-1
-11
 
 @#$#@#$#@
 ## WHAT IS IT?
