@@ -22,7 +22,7 @@ NLLoadModel("C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\
 #' change the parameter values 
 #' 
 #' starting population of trout 
-NLCommand("set n-trout 100")
+NLCommand("set n-trout 90")
 
 #' male freshwater mortality 
 NLCommand("set mortalityM 1e-05")
@@ -110,9 +110,12 @@ head(mydata)
 mydata$g <- as.numeric(as.character(mydata$g))
 head(mydata)
 
+mydata$iteration <- factor(mydata$iteration,levels=c(mydata$iteration))
+
 #' plot the data
 #' note the dot used in place of mydata because 
 #' we're using pipes 
+#' 
 
 #' first for males
 filter(mydata, sex == "male") %>% ggplot(.) + 
@@ -132,6 +135,9 @@ filter(mydata, sex == "male", anadromous=="FALSE") %>% ggplot(.) +
 #' boxplots
 mydata %>% ggplot(.) + 
   geom_boxplot(aes(x=iteration,y=g))  
+
+ggplot(mydata,aes(as.numeric(as.character(sort(iteration))), g,col=sex)) +  stat_summary(geom = "line", fun.y = mean) +
+  stat_summary(geom = "ribbon", fun.data = mean_cl_normal, alpha = 0.3)
 
 #' can extract the allele frequencies
 alleleFreq <- data.frame(cbind(unlist(test$`map [x -> [gm_val] of x ] sort turtles`)))

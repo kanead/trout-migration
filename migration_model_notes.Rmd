@@ -190,7 +190,7 @@ males$distribution <- 'male threshold'
 females$distribution <- 'female threshold'
 condition$distribution <- 'condition'
 Lengths <- rbind(males, females, condition)
-ggplot(Lengths, aes(length, fill = distribution)) + geom_density(alpha = 0.3) + geom_vline(xintercept = 5, linetype="dashed", 
+ggplot(Lengths, aes(length, fill = distribution)) + geom_density(alpha = 0.3) + geom_vline(xintercept = 10, linetype="dashed", 
                 color = "red", size=1) # the red line represents the mean of the condition trait 
 ```
 

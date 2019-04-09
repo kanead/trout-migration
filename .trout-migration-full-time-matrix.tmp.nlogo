@@ -680,7 +680,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-3.0
+4.0
 1
 1
 NIL
@@ -716,7 +716,7 @@ carrying-capacity
 carrying-capacity
 0
 100000
-200.0
+300.0
 1
 1
 NIL
@@ -731,7 +731,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.1
+0.02
 0.01
 1
 NIL
@@ -798,7 +798,7 @@ SWITCH
 469
 conflict?
 conflict?
-1
+0
 1
 -1000
 
@@ -808,7 +808,7 @@ INPUTBOX
 158
 600
 parasite-load
-3.0
+2.0
 1
 0
 Number
