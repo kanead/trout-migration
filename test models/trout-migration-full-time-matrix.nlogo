@@ -14,8 +14,8 @@ globals
 
 ] ;; added start-time and current-time
 
-breed[males male]
-breed[females female]
+breed[trouts trout]
+
 ; breed[juveniles juvenile]
 
 turtles-own
@@ -25,7 +25,6 @@ turtles-own
   sea-time
   state
   habitat
-
 
   WM
   WMT
@@ -55,52 +54,14 @@ turtles-own
   age
   sex
 
-;  my-day
-;  my-month
-]
-males-own
-[ start_quality
+; males
+ start_quality
   prop_rivals ; variable in the sneaker procedure; could be specified using 'let'
-;  mu_thresh
-;  h2
-;  Vp
-;  Va
-;  Ve
-;  mu_cond
-;  V_cond
-;  e_threshM
-;  z_threshM
-;  condM
-;  anadromous
-;  mates
-;  mother
-;  father
-;  motherThresh
-;  fatherThresh
-;  age
-]
-females-own
-[
-;  mu_thresh
-;  h2
-;  Vp
-;  Va
-;  Ve
-;  mu_cond
-;  V_cond
-;  e_threshF
-;  z_threshF
-;  condF
-;  anadromous
-;  mates
+
+; females
   max-mate-count
   mate-count
   availa-males
-;  mother
-;  father
-;  motherThresh
-;  fatherThresh
-;  age
   G-standardised
   days-since-child
 ]
@@ -132,8 +93,8 @@ to setup
    sprout 1
     [
     ifelse random 2 = 1
-      [set breed males set sex "male" set color red]
-      [set breed females set sex "female" set color grey]
+      [set sex "male" set color red]
+      [set sex "female" set color grey]
 
     set state "healthy"
     set size 2         ; represents size of the fish on screen, purely aesthetic
@@ -143,7 +104,7 @@ to setup
 
   ]
 ]
-  ask males [
+  ask trouts with [sex = "male"] [
     ifelse  conflict? [
  set WM matrix:from-row-list [[
   -0.9280339
@@ -197,7 +158,7 @@ to setup
   ]
   ]
 
-  ask females [
+  ask trouts with [sex = "female"] [
     set WM matrix:from-row-list [[
   0.9280339
   0.8612468
@@ -255,7 +216,7 @@ to set-migratory-behaviour
     ifelse(cond > z_thresh)
      [set anadromous false  set quality random-normal res_quality_mean res_quality_sd] ; 100 10
      [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
-      ask males with [ anadromous =  false] [set start_quality quality]
+  ask trouts with [sex = "males"] with [ anadromous =  false] [set start_quality quality]
     set habitat "fresh"
 
   let preGM_val matrix:pretty-print-text GM
@@ -284,26 +245,26 @@ to go
     if anadromous  [migrate]
   ]
 
-  ask females [ set days-since-child days-since-child + 1 ]
+  ask trouts with [sex = "female"] [ set days-since-child days-since-child + 1 ]
 
-  ask females
+  ask trouts with [sex = "female"]
    [
       ifelse age > 365 and  my-month = 2 and pcolor = cyan
       [choose-mates]
       [set mate-count 0]
    ]
 
-  ask females with [age > 0 and  pcolor = cyan and  my-month = 2 and days-since-child >= 365] [reproduce]
+ ask trouts with [sex = "female" and age > 0 and  pcolor = cyan and  my-month = 2 and days-since-child >= 365] [reproduce]
 
  if sneaker?
  [
-  ask males with [age > 365 and anadromous =  false] [sneaker]
+  ask trouts with [sex = "male" and age > 365 and anadromous =  false] [sneaker]
   ]
   tick
 end
 
 to sneaker
-  let availa-rivals males in-radius 5
+  let availa-rivals trouts with [sex = "male"] in-radius 5
   let rivals availa-rivals with [anadromous = true]
   set prop_rivals count availa-rivals with [anadromous = true] / count availa-rivals
   ifelse prop_rivals > 0.8 [set quality start_quality + 100  ] [set quality start_quality]
@@ -334,7 +295,7 @@ end
 ;end
 
 to mortality ;. mortality procedure, varies for males, females, anadromous and resident
-  ask males
+  ask trouts with [sex = "male"]
    [
     ifelse pcolor = cyan
      [set prob-death mortalityM ; chance of dying on any turn in freshwater
@@ -347,7 +308,7 @@ to mortality ;. mortality procedure, varies for males, females, anadromous and r
      if random-float 1 < prob-death [die] ; death procedure
     ]
 
-  ask females
+    ask trouts with [sex = "female"]
     [
      ifelse pcolor = cyan
       [set prob-death mortalityF ; chance of dying on any turn in freshwater
@@ -364,7 +325,7 @@ end
 
 to choose-mates ; females choose up to 5 male mates from a pool in their radius
 
-  set availa-males males in-radius female-mate-radius with [pcolor = cyan and age > 365]
+  set availa-males trouts with [sex = "male"] in-radius female-mate-radius with [pcolor = cyan and age > 365]
   set max-mate-count min (list 5 count availa-males)
   let new-mates rnd:weighted-n-of max-mate-count availa-males [ quality ]
   set mates (turtle-set mates new-mates)
@@ -397,12 +358,10 @@ to reproduce ; females produce 5 offspring which inherit traits from their paren
           set state "healthy"
           ifelse random 2 = 1
            [
-            set breed males
             set color red
             set sex "male"
            ]
            [
-            set breed females
             set color grey
             set sex "female"
            ]
@@ -502,7 +461,7 @@ MONITOR
 140
 124
 male trout
-count males
+count trouts with [sex = \"male\"]
 17
 1
 11
@@ -513,7 +472,7 @@ MONITOR
 80
 124
 female trout
-count females
+count trouts with [sex = \"female\"]
 17
 1
 11
@@ -559,7 +518,7 @@ MONITOR
 1062
 212
 anadromous males
-count males with [anadromous = true]
+count trouts with [sex = \"male\" and anadromous = true]
 17
 1
 11
@@ -570,7 +529,7 @@ MONITOR
 789
 214
 anadromous females
-count females with [anadromous = true]
+count trouts with [sex = \"female\" and anadromous = true]
 17
 1
 11
@@ -581,7 +540,7 @@ MONITOR
 1188
 212
 resident males
-count males with [anadromous = false]
+count trouts with [sex = \"male\" and anadromous = false]
 17
 1
 11
@@ -592,7 +551,7 @@ MONITOR
 916
 213
 resident females
-count females with [anadromous = false]
+count trouts with [sex = \"female\" and anadromous = false]
 17
 1
 11
@@ -702,10 +661,10 @@ true
 true
 "" ""
 PENS
-"anad males" 1.0 0 -1184463 true "" "plot count males with [anadromous = true] / count turtles\n"
-"res males" 1.0 0 -13345367 true "" "plot count males with [anadromous = false] / count turtles"
-"anad fem" 1.0 0 -2674135 true "" "plot count females with [anadromous = true] / count turtles\n"
-"res fem" 1.0 0 -10899396 true "" "plot count females with [anadromous = false] / count turtles"
+"anad males" 1.0 0 -1184463 true "" "plot count trouts with [sex = \"male\" and anadromous = true] / count turtles\n"
+"res males" 1.0 0 -13345367 true "" "plot count trouts with [sex = \"male\" and anadromous = false] / count turtles"
+"anad fem" 1.0 0 -2674135 true "" "plot count trouts with [sex = \"female\" and anadromous = true] / count turtles\n"
+"res fem" 1.0 0 -10899396 true "" "plot count trouts with [sex = \"female\" and anadromous = false] / count turtles"
 
 SLIDER
 7
@@ -771,7 +730,7 @@ true
 false
 "" ""
 PENS
-"default" 0.5 1 -16777216 true "" "histogram [G] of females"
+"default" 0.5 1 -16777216 true "" "histogram [G] of trouts with [sex = \"female\"]"
 
 PLOT
 937
@@ -789,7 +748,7 @@ true
 false
 "" ""
 PENS
-"default" 0.5 1 -16777216 true "" "histogram [G] of males "
+"default" 0.5 1 -16777216 true "" "histogram [G] of trouts with [sex = \"male\"] "
 
 SWITCH
 423
@@ -1039,7 +998,7 @@ MONITOR
 929
 55
 mean
-mean [G] of females
+mean [G] of trouts with [sex = \"female\"]
 5
 1
 11
@@ -1050,7 +1009,7 @@ MONITOR
 930
 101
 variance
-variance [G] of females
+variance [G] of trouts with [sex = \"female\"]
 5
 1
 11
@@ -1061,7 +1020,7 @@ MONITOR
 929
 148
 SD
-standard-deviation [G] of females
+standard-deviation [G] of trouts with [sex = \"female\"]
 5
 1
 11
@@ -1072,7 +1031,7 @@ MONITOR
 1215
 55
 mean
-mean [G] of males
+mean [G] of trouts with [sex = \"male\"]
 5
 1
 11
@@ -1083,7 +1042,7 @@ MONITOR
 1215
 101
 variance
-variance [G] of males
+variance [G] of trouts with [sex = \"male\"]
 5
 1
 11
@@ -1094,7 +1053,7 @@ MONITOR
 1214
 150
 SD
-standard-deviation [G] of males
+standard-deviation [G] of trouts with [sex = \"male\"]
 5
 1
 11
@@ -1262,7 +1221,7 @@ MONITOR
 776
 490
 Prop anad male
-count males with [anadromous = true] / count males
+count trouts with [sex = \"male\" and anadromous = true] / count trouts with [sex = \"male\"]
 3
 1
 11
@@ -1273,7 +1232,7 @@ MONITOR
 891
 489
 Prop anad female
-count females with [anadromous = true] / count females
+count trouts with [sex = \"female\" and anadromous = true] / count trouts with [sex = \"female\"]
 3
 1
 11
