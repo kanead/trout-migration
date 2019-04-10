@@ -80,7 +80,7 @@ In the explicit genetic model, there are 21 genes in a diploid system. This is a
 
 I want to control the expected additive genetic value for the threshold trait and to weight the contribution of each locus according to a negative exponential function. 
 
-I can set the expected additive genetic value (here, arbitrarilty set to 5) by solving for lambda with the following. 
+I can set the expected additive genetic value (here, arbitrarilty set to 10) by solving for lambda with the following. 
 
 This is the same as $\sum_{i=1}^{20}e^{-\lambda i}=1$
 ```{r}
