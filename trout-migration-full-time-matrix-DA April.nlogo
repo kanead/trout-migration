@@ -1,7 +1,6 @@
 ; Trout Migration and Parasitism Model
 
 ; https://homepage.stat.uiowa.edu/~mbognar/applets/bin.html
-; n = 40, p = 0.5 gives mean = 20, variance = 10
 extensions [rnd time matrix profiler]
 globals
 [
@@ -16,9 +15,6 @@ globals
   WMc
 
 ] ;; added start-time and current-time
-
-breed[trouts trout]
-; breed[juveniles juvenile]
 
 
 turtles-own
@@ -84,20 +80,27 @@ end
 
 to set-environment
   ; time schedule
+  ; here the model is arbitarily set to start on the 1st Jan 2000
   set start-time time:create "2000-01-01"
   set current-time time:anchor-to-ticks start-time 1.0 "days"
   time:anchor-schedule start-time 1.0 "days"
-  ;;
 
+  ; create freshwater habitat - cyan coloured patches - and marine habitat - blue coloured patches
   ask patches [set pcolor cyan]
   ask patches with [pxcor >= 50] [set pcolor blue]
 
+  ; set the proportion of marine patches that have parasites
+  ; this is controlled by a slider on the gui called prop-parasites
   let percentage prop-parasites
   let sea patches with [pcolor = blue]
-;  ask n-of n-parasites patches with [pcolor = blue] [set  parasites? "yes"]
   ask  n-of (percentage * count sea) sea
-   [set  parasites? "yes"]
+   [set parasites? "yes"]
 end
+
+
+; here we have two weights matrices, one for males and one for females
+; we want to control the expected additive genetic value for the threshold trait
+; and to weight the contribution of each locus according to a negative exponential function
 
 to set-parameters
   set WM matrix:from-row-list
@@ -131,7 +134,7 @@ to set-parameters
   [
     [
       -0.9280339
-      0.8612468
+     -0.8612468
       0.7992662
       0.7417461
       0.6883655
@@ -154,34 +157,31 @@ to set-parameters
     ]
   ]
 
-;  set WM matrix:transpose WM
- ; set WMc matrix:transpose WMc
 end
 
 to set-population
-  ; create the population of trout
+  ; create the population of trout in the freshwater habitat
   ask n-of n-trout patches with [pcolor = cyan]
   [
-   sprout-trouts 1
+   sprout 1
    [
     ifelse random 2 = 1
       [set sex "male" set color red]
       [set sex "female" set color grey]
 
-    set habitat "fresh"
-    set state "healthy"
+    set habitat "fresh" ; all fish start off in freshwater
+    set state "healthy" ; all fish start off without parasites
     set mates (turtle-set)
     set size 2         ; represents size of the fish on screen, purely aesthetic
     set sea-time 0
     set mu_cond  10     ; mean value of the condition trait
     set V_cond  2.94706      ; variance of the condition trait (in this case, all the phenotypic variance is environmental)
 
-    ; these values determine the fecundity of the female fish as a function of her quality
+    ; these values determine the fecundity of the female fish as a function of her quality - they feed into a logistic function
     set L  10
     set k  0.04
     set mass0  150
 
-   ; set GM fill-matrix 1 21 [-> random 3]
     set GM matrix:from-row-list n-values 21 [n-values 2 [i -> random 2]]
     set-migratory-behaviour
   ]
@@ -190,27 +190,28 @@ to set-population
 
 end
 
+; this function is used to set out how the matrices are populated
   to-report fill-matrix [n m generator]
   report matrix:from-row-list n-values n [n-values m [runresult generator]]
   end
 
 
+; the weights matrix differs for females and males here
+; this builds up a gene matrix of 1s and 0s and weights them by the weights matrix
+; the sum of this matrix G is the genetic value for the threshold trait
+; this value is used along with the environmental value for each fish to determine which
+; migratory tactic an individual assumes by adding it to the genetic value to get
+; a phenotypic value z_thresh. If the condition, an entirely environmentally derived value
+; exceeds your threshold the fish becomes a resident otherwise it becomes anadromous
+
 to set-migratory-behaviour
 
-  set WMT matrix:transpose WM
+  ifelse sex = "female" [set WMT matrix:transpose WM] [set WMT matrix:transpose WMc]
   let col1 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 0]]
   let col2 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 1]]
   let sum-G-matrix col1 matrix:+ col2
   let GM_WMT  matrix:times sum-G-matrix WMT
   set G matrix:get GM_WMT 0 0
-;   let WMT matrix:transpose WM
-;   let my-WM WM
-;   if conflict? and sex = "male" [set my-WM WMc]
-;  print matrix:dimensions WM  ; row then columns
-;  print matrix:dimensions WMT  ; row then columns
-;   let GM_WMT  matrix:times GM WMT
-;   let GM_WMT  matrix:times GM my-WM
-;   set G matrix:get GM_WMT 0 0
 
    set Va 2.94706
    set Ve 2.94706
@@ -222,6 +223,7 @@ to set-migratory-behaviour
    ifelse(cond > z_thresh)
      [set anadromous false  set quality random-normal res_quality_mean res_quality_sd] ; 100 10
      [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
+
    if sex = "male" and anadromous =  false [set start_quality quality]
    set habitat "fresh"
 
@@ -233,45 +235,37 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SCHEDULING ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
-  tick
+  tick ; iterate the model
 
-  if ticks mod 364 = 0 [set year year + 1]
-  if year = 500 [stop]
-  set my-month  time:get "month" current-time
-  set my-day  time:get "day" current-time
+  if ticks mod 364 = 0 [set year year + 1] ; iterate the year
+  if year = 500 [stop] ; tell the model to stop at year 500
+  set my-month  time:get "month" current-time ; extract the month so fish can keep track of their schedule
+  set my-day  time:get "day" current-time ; extract the day so fish can keep track of their schedule
 
-  ;if ticks mod 3640 = 0  [allele-freq]
-
-  if count turtles > carrying-capacity
+  if count turtles > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
     [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
 
   ask turtles
    [  mortality
-;     set mates ( turtle-set )
-     if habitat = "fresh" [ move-to one-of patches with [pcolor = cyan] ]
+     if habitat = "fresh" [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
      set age (1 + age)  ;increment-age
      if anadromous [migrate]
    ]
 
-  ask trouts with [sex = "female"]
+  ask turtles with [sex = "female"]
    [
      set days-since-child days-since-child + 1
-;     ifelse age > 365 and my-month = 2 and habitat = "fresh"
-;      [choose-mates]
-;      [set mate-count 0]
    ]
-
-;  ask females with [age > 0 and habitat = "fresh" and my-month = 2 and days-since-child >= 365] [reproduce]
 
   if my-month = 2
   [
     ask turtles with [age > 365 and habitat = "fresh"] [set mates ( turtle-set )]
-    ask trouts with [sex = "female" and age > 365 and habitat = "fresh"] [choose-mates]
-    ask trouts with [sex = "female" and age > 0 and habitat = "fresh" and days-since-child >= 365] [reproduce]
+    ask turtles with [sex = "female" and age > 365 and habitat = "fresh"] [choose-mates]
+    ask turtles with [sex = "female" and age > 0 and habitat = "fresh" and days-since-child >= 365] [reproduce]
   ]
 
   if sneaker?
-   [ ask trouts with [sex = "male" and age > 365 and anadromous = false] [sneaker] ]
+   [ ask turtles with [sex = "male" and age > 365 and anadromous = false] [sneaker] ]
 
 
 end
@@ -280,43 +274,55 @@ end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SUBMODELS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to mortality ;. mortality procedure, varies for males, females, anadromous and resident
-  ask trouts with [sex = "male"]
+; mortality procedure,
+; The chance of dying varies for males, females, by habitat and depending on whether you are parasitiised
+
+to mortality
+  ask turtles with [sex = "male"]
    [
     ifelse habitat = "fresh"
      [set prob-death mortalityM ; chance of dying on any turn in freshwater
       if random-float 1 < prob-death [die] ] ; death procedure
      [
       ifelse state = "healthy"
-        [ set prob-death mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while anadromous
+        [ set prob-death mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
         [ set prob-death mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
       ]
      if random-float 1 < prob-death [die] ; death procedure
     ]
 
-  ask trouts with [sex = "female"]
+  ask turtles with [sex = "female"]
     [
      ifelse habitat = "fresh"
       [set prob-death mortalityF ; chance of dying on any turn in freshwater
         if random-float 1 < prob-death [die] ] ; death procedure
       [
        ifelse state = "healthy"
-        [ set prob-death mortalityF * anad-death-multiplierF ]  ; higher likelihood of death while anadromous
-        [ set prob-death mortalityF * anad-death-multiplierF * parasite-load ] ; higher likelihood again of dying if parasitized while at sea
+        [ set prob-death mortalityF * anad-death-multiplierF ]  ; higher likelihood of death while at sea
+        [ set prob-death mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
       ]
      if random-float 1 < prob-death [die] ; death procedure
     ]
 
 end
 
+; resident males look around a radius of 5 patches and count the proportion of anadromous males
+; relative to residents. If the proportion of anadromous males is greater than the sneaker_threshold
+; the resident gets a boost to its quality, the sneaker_boost
+
 to sneaker
-  let availa-rivals trouts with [sex = "male"] in-radius 5
+  let availa-rivals turtles with [sex = "male"] in-radius 5
   let rivals availa-rivals with [anadromous = true]
   let prop_rivals count availa-rivals with [anadromous = true] / count availa-rivals
   ifelse prop_rivals > sneaker_thresh ; 0.8
    [set quality start_quality + sneaker_boost  ] ; 200
    [set quality start_quality]
 end
+
+; tells the fish when to migrate
+; once at sea the fish do not move
+; they may land on a patch with parasites which will affect their quality
+; this in turn affects their fecudnity, if female, or chance of mating, if male
 
 to migrate
   if age > 365 and my-month = 1 and my-day = 1
@@ -341,17 +347,25 @@ to migrate
 
 end
 
-to choose-mates ; females choose up to 5 male mates from a pool in their radius
-  let availa-males trouts with [sex = "male"] in-radius female-mate-radius with [habitat = "fresh" and age > 365]
+; females choose up to 5 male mates from a pool of males in freshwater habitat over a certain age in their radius
+; females choose the males based on the quality of the males
+; this quality variable is set based on the migratory tactic and can vary if you are a sneaker or if you have been parasitised
+
+to choose-mates
+  let availa-males turtles with [sex = "male"] in-radius female-mate-radius with [habitat = "fresh" and age > 365]
   let max-mate-count min (list 5 count availa-males)
   let new-mates rnd:weighted-n-of max-mate-count availa-males [ quality ]
   set mates (turtle-set mates new-mates)
   ask new-mates [ set mates (turtle-set mates myself) ]
 end
 
+; females produce offspring which inherit traits from their parents
+; the father traits are chosen from one of the female's mates
+; fecundity is a function of female quality which is a variable in a logistic function
+; as for males, this quality variable is set based on the migratory tactic and can vary if you have been parasitised
+; there is no sneaker tactic for females so this does not play a role in affecting female quality
 
-to reproduce ; females produce 5 offspring which inherit traits from their parents
-             ; the father traits are chosen from one of the female's mates
+to reproduce
   if count mates > 0
    [
         set days-since-child 0
@@ -362,10 +376,12 @@ to reproduce ; females produce 5 offspring which inherit traits from their paren
           set father one-of [mates] of mother
 
           let motherGM [GM] of mother
+          let motherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column motherGM random 2]]
           let fatherGM [GM] of father
-          let preGM  (motherGM matrix:+ fatherGM)
-          let preGM2 matrix:times 0.5 preGM
-          set GM matrix:map [ i -> val-change i ] preGM2
+          let fatherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column fatherGM random 2]]
+          set GM matrix:from-row-list n-values 21 [n-values 2 [i -> 0]]
+          matrix:set-column GM 0 matrix:get-row motherLocus 0
+          matrix:set-column GM 1 matrix:get-row fatherLocus 0
 
           set state "healthy"
           ifelse random 2 = 1
@@ -384,23 +400,11 @@ to reproduce ; females produce 5 offspring which inherit traits from their paren
 
 end
 
-
-to-report val-change [ val ]
-  let new-val val
-  if val = 0.5 [set new-val random 2]
-  if val = 1.5 [set new-val 1 + random 2]
-  report new-val
-end
-
 ;; kill turtles in excess of carrying capacity
 to grim-reaper
   let num-turtles count turtles with [habitat = "fresh"]
   let chance-to-die (num-turtles - carrying-capacity) / num-turtles
   if random-float 1.0 < chance-to-die [ die ]
-;  ask turtles with [habitat = "fresh"]
-;   [
-;    if random-float 1.0 < chance-to-die [ die ]
-;   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -470,7 +474,7 @@ MONITOR
 140
 124
 male trout
-count trouts with [sex = \"male\"]
+count turtles with [sex = \"male\"]
 17
 1
 11
@@ -481,7 +485,7 @@ MONITOR
 80
 124
 female trout
-count trouts with [sex = \"female\"]
+count turtles with [sex = \"female\"]
 17
 1
 11
@@ -527,7 +531,7 @@ MONITOR
 1062
 212
 anadromous males
-count trouts with [sex = \"male\" and anadromous = true]
+count turtles with [sex = \"male\" and anadromous = true]
 17
 1
 11
@@ -538,7 +542,7 @@ MONITOR
 789
 214
 anadromous females
-count trouts with [sex = \"female\" and anadromous = true]
+count turtles with [sex = \"female\" and anadromous = true]
 17
 1
 11
@@ -549,7 +553,7 @@ MONITOR
 1188
 212
 resident males
-count trouts with [sex = \"male\" and anadromous = false]
+count turtles with [sex = \"male\" and anadromous = false]
 17
 1
 11
@@ -560,7 +564,7 @@ MONITOR
 916
 213
 resident females
-count trouts with [sex = \"female\" and anadromous = false]
+count turtles with [sex = \"female\" and anadromous = false]
 17
 1
 11
@@ -670,10 +674,10 @@ true
 true
 "" ""
 PENS
-"anad males" 1.0 0 -1184463 true "" "plot count trouts with [sex = \"male\" and anadromous = true] / count turtles\n"
-"res males" 1.0 0 -13345367 true "" "plot count trouts with [sex = \"male\" and anadromous = false] / count turtles"
-"anad fem" 1.0 0 -2674135 true "" "plot count trouts with [sex = \"female\" and anadromous = true] / count turtles\n"
-"res fem" 1.0 0 -10899396 true "" "plot count trouts with [sex = \"female\" and anadromous = false] / count turtles"
+"anad males" 1.0 0 -1184463 true "" "plot count turtles with [sex = \"male\" and anadromous = true] / count turtles\n"
+"res males" 1.0 0 -13345367 true "" "plot count turtles with [sex = \"male\" and anadromous = false] / count turtles"
+"anad fem" 1.0 0 -2674135 true "" "plot count turtles with [sex = \"female\" and anadromous = true] / count turtles\n"
+"res fem" 1.0 0 -10899396 true "" "plot count turtles with [sex = \"female\" and anadromous = false] / count turtles"
 
 SLIDER
 7
@@ -739,7 +743,7 @@ true
 false
 "" ""
 PENS
-"default" 0.5 1 -16777216 true "" "histogram [G] of trouts with [sex = \"female\"]"
+"default" 0.5 1 -16777216 true "" "histogram [G] of turtles with [sex = \"female\"]"
 
 PLOT
 937
@@ -757,13 +761,13 @@ true
 false
 "" ""
 PENS
-"default" 0.5 1 -16777216 true "" "histogram [G] of trouts with [sex = \"male\"] "
+"default" 0.5 1 -16777216 true "" "histogram [G] of turtles with [sex = \"male\"] "
 
 SWITCH
-423
-436
-526
-469
+472
+488
+575
+521
 conflict?
 conflict?
 0
@@ -782,10 +786,10 @@ parasite-load
 Number
 
 INPUTBOX
-272
-548
-427
-608
+269
+685
+424
+745
 weight1
 0.0
 1
@@ -793,10 +797,10 @@ weight1
 Number
 
 INPUTBOX
-432
-549
-587
-609
+429
+686
+584
+746
 weight2
 0.0
 1
@@ -804,10 +808,10 @@ weight2
 Number
 
 INPUTBOX
-587
-549
-742
-609
+584
+686
+739
+746
 weight3
 0.0
 1
@@ -815,10 +819,10 @@ weight3
 Number
 
 INPUTBOX
-742
-549
-897
-609
+739
+686
+894
+746
 weight4
 0.0
 1
@@ -826,10 +830,10 @@ weight4
 Number
 
 INPUTBOX
-898
-548
-1053
-608
+895
+685
+1050
+745
 weight5
 0.0
 1
@@ -837,10 +841,10 @@ weight5
 Number
 
 INPUTBOX
-269
-611
-424
-671
+266
+748
+421
+808
 weight6
 0.0
 1
@@ -848,10 +852,10 @@ weight6
 Number
 
 INPUTBOX
-429
-612
-584
-672
+426
+749
+581
+809
 weight7
 0.0
 1
@@ -859,10 +863,10 @@ weight7
 Number
 
 INPUTBOX
-587
-612
-742
-672
+584
+749
+739
+809
 weight8
 0.0
 1
@@ -870,10 +874,10 @@ weight8
 Number
 
 INPUTBOX
-747
-611
-902
-671
+744
+748
+899
+808
 weight9
 0.0
 1
@@ -881,10 +885,10 @@ weight9
 Number
 
 INPUTBOX
-905
-611
-1060
-671
+902
+748
+1057
+808
 weight10
 0.0
 1
@@ -892,10 +896,10 @@ weight10
 Number
 
 INPUTBOX
-269
-673
-424
-733
+266
+810
+421
+870
 weight11
 0.0
 1
@@ -903,10 +907,10 @@ weight11
 Number
 
 INPUTBOX
-427
-672
-582
-732
+424
+809
+579
+869
 weight12
 0.0
 1
@@ -914,10 +918,10 @@ weight12
 Number
 
 INPUTBOX
-589
-672
-744
-732
+586
+809
+741
+869
 weight13
 0.0
 1
@@ -925,10 +929,10 @@ weight13
 Number
 
 INPUTBOX
-749
-672
-904
-732
+746
+809
+901
+869
 weight14
 0.0
 1
@@ -936,10 +940,10 @@ weight14
 Number
 
 INPUTBOX
-904
-673
-1059
-733
+901
+810
+1056
+870
 weight15
 0.0
 1
@@ -947,10 +951,10 @@ weight15
 Number
 
 INPUTBOX
-272
-736
-427
-796
+269
+873
+424
+933
 weight16
 0.0
 1
@@ -958,10 +962,10 @@ weight16
 Number
 
 INPUTBOX
-428
-736
-583
-796
+425
+873
+580
+933
 weight17
 0.0
 1
@@ -969,10 +973,10 @@ weight17
 Number
 
 INPUTBOX
-590
-735
-745
-795
+587
+872
+742
+932
 weight18
 0.0
 1
@@ -980,10 +984,10 @@ weight18
 Number
 
 INPUTBOX
-747
-735
-902
-795
+744
+872
+899
+932
 weight19
 0.0
 1
@@ -991,10 +995,10 @@ weight19
 Number
 
 INPUTBOX
-902
-734
-1057
-794
+899
+871
+1054
+931
 weight20
 0.0
 1
@@ -1007,7 +1011,7 @@ MONITOR
 929
 55
 mean
-mean [G] of trouts with [sex = \"female\"]
+mean [G] of turtles with [sex = \"female\"]
 5
 1
 11
@@ -1018,7 +1022,7 @@ MONITOR
 930
 101
 variance
-variance [G] of trouts with [sex = \"female\"]
+variance [G] of turtles with [sex = \"female\"]
 5
 1
 11
@@ -1029,7 +1033,7 @@ MONITOR
 929
 148
 SD
-standard-deviation [G] of trouts with [sex = \"female\"]
+standard-deviation [G] of turtles with [sex = \"female\"]
 5
 1
 11
@@ -1040,7 +1044,7 @@ MONITOR
 1215
 55
 mean
-mean [G] of trouts with [sex = \"male\"]
+mean [G] of turtles with [sex = \"male\"]
 5
 1
 11
@@ -1051,7 +1055,7 @@ MONITOR
 1215
 101
 variance
-variance [G] of trouts with [sex = \"male\"]
+variance [G] of turtles with [sex = \"male\"]
 5
 1
 11
@@ -1062,7 +1066,7 @@ MONITOR
 1214
 150
 SD
-standard-deviation [G] of trouts with [sex = \"male\"]
+standard-deviation [G] of turtles with [sex = \"male\"]
 5
 1
 11
@@ -1133,7 +1137,7 @@ true
 false
 "" ""
 PENS
-"residents" 1.0 1 -2674135 true "" "histogram [quality] of males \n"
+"residents" 1.0 1 -2674135 true "" "histogram [quality] of turtles with [sex = \"male\"] \n"
 
 TEXTBOX
 142
@@ -1166,10 +1170,10 @@ extra mortality due to parasites
 1
 
 TEXTBOX
-533
-444
-602
-463
+582
+496
+651
+515
 sexual conflict 
 11
 0.0
@@ -1211,13 +1215,13 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -7500403 true "" "histogram [quality] of females "
+"default" 1.0 1 -7500403 true "" "histogram [quality] of turtles with [sex = \"female\"] "
 
 MONITOR
-248
-424
-412
-469
+944
+423
+1108
+468
 NIL
 current-time
 17
@@ -1230,7 +1234,7 @@ MONITOR
 776
 490
 Prop anad male
-count trouts with [sex = \"male\" and anadromous = true] / count trouts with [sex = \"male\"]
+count turtles with [sex = \"male\" and anadromous = true] / count turtles with [sex = \"male\"]
 3
 1
 11
@@ -1241,16 +1245,16 @@ MONITOR
 891
 489
 Prop anad female
-count trouts with [sex = \"female\" and anadromous = true] / count trouts with [sex = \"female\"]
+count turtles with [sex = \"female\" and anadromous = true] / count turtles with [sex = \"female\"]
 3
 1
 11
 
 INPUTBOX
-1134
-546
-1289
-606
+1080
+482
+1235
+542
 res_quality_mean
 100.0
 1
@@ -1269,10 +1273,10 @@ res_quality_sd
 Number
 
 INPUTBOX
-1136
-668
-1291
-728
+1082
+604
+1237
+664
 anad_quality_mean
 200.0
 1
@@ -1291,10 +1295,10 @@ anad_quality_sd
 Number
 
 INPUTBOX
-1136
-608
-1291
-668
+1082
+544
+1237
+604
 paras_quality_mean
 150.0
 1
@@ -1313,10 +1317,10 @@ paras_quality_sd
 Number
 
 SWITCH
-421
-471
+252
+493
+357
 526
-504
 sneaker?
 sneaker?
 1
@@ -1324,10 +1328,10 @@ sneaker?
 -1000
 
 TEXTBOX
-531
-473
-639
-501
+370
+491
+478
+519
 sneaker tactic by resident males
 11
 0.0
@@ -1351,10 +1355,10 @@ NIL
 1
 
 SLIDER
-296
-473
-415
-506
+247
+528
+366
+561
 sneaker_thresh
 sneaker_thresh
 0.6
@@ -1366,10 +1370,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-294
-509
-416
-542
+245
+564
+367
+597
 sneaker_boost
 sneaker_boost
 100
