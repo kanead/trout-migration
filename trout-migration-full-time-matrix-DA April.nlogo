@@ -133,8 +133,8 @@ to set-parameters
   set WMc matrix:from-row-list
   [
     [
-      -0.9280339
-     -0.8612468
+      0.9280339
+      0.8612468
       0.7992662
       0.7417461
       0.6883655
@@ -156,6 +156,28 @@ to set-parameters
       0
     ]
   ]
+
+  matrix:set WMc 0 0 sex_diff_1
+  matrix:set WMc 0 1 sex_diff_2
+  matrix:set WMc 0 2 sex_diff_3
+  matrix:set WMc 0 3 sex_diff_4
+  matrix:set WMc 0 4 sex_diff_5
+  matrix:set WMc 0 5 sex_diff_6
+  matrix:set WMc 0 6 sex_diff_7
+  matrix:set WMc 0 7 sex_diff_8
+  matrix:set WMc 0 8 sex_diff_9
+  matrix:set WMc 0 9 sex_diff_10
+  matrix:set WMc 0 10 sex_diff_11
+  matrix:set WMc 0 11 sex_diff_12
+  matrix:set WMc 0 12 sex_diff_13
+  matrix:set WMc 0 13 sex_diff_14
+  matrix:set WMc 0 14 sex_diff_15
+  matrix:set WMc 0 15 sex_diff_16
+  matrix:set WMc 0 16 sex_diff_17
+  matrix:set WMc 0 17 sex_diff_18
+  matrix:set WMc 0 18 sex_diff_19
+  matrix:set WMc 0 19 sex_diff_20
+
 
 end
 
@@ -786,10 +808,10 @@ parasite-load
 Number
 
 INPUTBOX
-269
-685
-424
-745
+266
+752
+421
+812
 weight1
 0.0
 1
@@ -797,10 +819,10 @@ weight1
 Number
 
 INPUTBOX
-429
-686
-584
-746
+426
+753
+581
+813
 weight2
 0.0
 1
@@ -808,10 +830,10 @@ weight2
 Number
 
 INPUTBOX
-584
-686
-739
-746
+581
+753
+736
+813
 weight3
 0.0
 1
@@ -819,10 +841,10 @@ weight3
 Number
 
 INPUTBOX
-739
-686
-894
-746
+736
+753
+891
+813
 weight4
 0.0
 1
@@ -830,10 +852,10 @@ weight4
 Number
 
 INPUTBOX
-895
-685
-1050
-745
+892
+752
+1047
+812
 weight5
 0.0
 1
@@ -841,10 +863,10 @@ weight5
 Number
 
 INPUTBOX
-266
-748
-421
-808
+263
+815
+418
+875
 weight6
 0.0
 1
@@ -852,10 +874,10 @@ weight6
 Number
 
 INPUTBOX
-426
-749
-581
-809
+423
+816
+578
+876
 weight7
 0.0
 1
@@ -863,10 +885,10 @@ weight7
 Number
 
 INPUTBOX
-584
-749
-739
-809
+581
+816
+736
+876
 weight8
 0.0
 1
@@ -874,10 +896,10 @@ weight8
 Number
 
 INPUTBOX
-744
-748
-899
-808
+741
+815
+896
+875
 weight9
 0.0
 1
@@ -885,10 +907,10 @@ weight9
 Number
 
 INPUTBOX
-902
-748
-1057
-808
+899
+815
+1054
+875
 weight10
 0.0
 1
@@ -896,10 +918,10 @@ weight10
 Number
 
 INPUTBOX
-266
-810
-421
-870
+263
+877
+418
+937
 weight11
 0.0
 1
@@ -907,10 +929,10 @@ weight11
 Number
 
 INPUTBOX
-424
-809
-579
-869
+421
+876
+576
+936
 weight12
 0.0
 1
@@ -918,10 +940,10 @@ weight12
 Number
 
 INPUTBOX
-586
-809
-741
-869
+583
+876
+738
+936
 weight13
 0.0
 1
@@ -929,10 +951,10 @@ weight13
 Number
 
 INPUTBOX
-746
-809
-901
-869
+743
+876
+898
+936
 weight14
 0.0
 1
@@ -940,10 +962,10 @@ weight14
 Number
 
 INPUTBOX
-901
-810
-1056
-870
+898
+877
+1053
+937
 weight15
 0.0
 1
@@ -951,10 +973,10 @@ weight15
 Number
 
 INPUTBOX
-269
-873
-424
-933
+266
+940
+421
+1000
 weight16
 0.0
 1
@@ -962,10 +984,10 @@ weight16
 Number
 
 INPUTBOX
-425
-873
-580
-933
+422
+940
+577
+1000
 weight17
 0.0
 1
@@ -973,10 +995,10 @@ weight17
 Number
 
 INPUTBOX
-587
-872
-742
-932
+584
+939
+739
+999
 weight18
 0.0
 1
@@ -984,10 +1006,10 @@ weight18
 Number
 
 INPUTBOX
-744
-872
-899
-932
+741
+939
+896
+999
 weight19
 0.0
 1
@@ -995,10 +1017,10 @@ weight19
 Number
 
 INPUTBOX
-899
-871
-1054
-931
+896
+938
+1051
+998
 weight20
 0.0
 1
@@ -1383,6 +1405,206 @@ sneaker_boost
 1
 NIL
 HORIZONTAL
+
+CHOOSER
+377
+553
+469
+598
+sex_diff_1
+sex_diff_1
+0.9280339 -0.9280339
+1
+
+CHOOSER
+469
+554
+561
+599
+sex_diff_2
+sex_diff_2
+0.8612468 -0.8612468
+1
+
+CHOOSER
+564
+554
+656
+599
+sex_diff_3
+sex_diff_3
+0.7992662 -0.7992662
+1
+
+CHOOSER
+659
+554
+751
+599
+sex_diff_4
+sex_diff_4
+0.7417461 -0.7417461
+1
+
+CHOOSER
+753
+552
+845
+597
+sex_diff_5
+sex_diff_5
+0.6883655 -0.6883655
+1
+
+CHOOSER
+378
+600
+470
+645
+sex_diff_6
+sex_diff_6
+0.6388265 -0.6388265
+1
+
+CHOOSER
+472
+600
+564
+645
+sex_diff_7
+sex_diff_7
+0.5928526 -0.5928526
+1
+
+CHOOSER
+561
+599
+653
+644
+sex_diff_8
+sex_diff_8
+0.5501873 -0.5501873
+1
+
+CHOOSER
+655
+599
+747
+644
+sex_diff_9
+sex_diff_9
+0.5105924 -0.5105924
+1
+
+CHOOSER
+751
+599
+843
+644
+sex_diff_10
+sex_diff_10
+0.4738471 -0.4738471
+1
+
+CHOOSER
+377
+643
+469
+688
+sex_diff_11
+sex_diff_11
+0.4397461 -0.4397461
+1
+
+CHOOSER
+471
+644
+563
+689
+sex_diff_12
+sex_diff_12
+0.4080993 -0.4080993
+1
+
+CHOOSER
+566
+646
+658
+691
+sex_diff_13
+sex_diff_13
+0.37873 -0.37873
+1
+
+CHOOSER
+659
+645
+751
+690
+sex_diff_14
+sex_diff_14
+0.3514742 -0.3514742
+1
+
+CHOOSER
+753
+644
+845
+689
+sex_diff_15
+sex_diff_15
+0.32618 -0.32618
+1
+
+CHOOSER
+379
+688
+471
+733
+sex_diff_16
+sex_diff_16
+0.3027061 -0.3027061
+1
+
+CHOOSER
+471
+689
+563
+734
+sex_diff_17
+sex_diff_17
+0.2809215 -0.2809215
+1
+
+CHOOSER
+564
+690
+656
+735
+sex_diff_18
+sex_diff_18
+0.2607046 -0.2607046
+1
+
+CHOOSER
+660
+690
+752
+735
+sex_diff_19
+sex_diff_19
+0.2419427 -0.2419427
+1
+
+CHOOSER
+753
+691
+845
+736
+sex_diff_20
+sex_diff_20
+0.224531 -0.224531
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
