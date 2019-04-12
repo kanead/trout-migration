@@ -11,8 +11,8 @@ globals
   my-month
   my-day
 
-  WM ; weight matrix for females
-  WMc ; weight matrix for males
+  WM
+  WMc
 
 ] ;; added start-time and current-time
 
@@ -31,6 +31,8 @@ turtles-own
   GM_val
 
   G
+  mu_thresh
+  h2
   Vp
   Va
   Ve
@@ -43,6 +45,8 @@ turtles-own
 
   mother
   father
+  motherThresh
+  fatherThresh
 
   quality
   age
@@ -76,8 +80,8 @@ end
 
 to set-environment
   ; time schedule
-  ; here we specify the start date of the model
-  set start-time time:create "2000-12-01"
+  ; here the model is arbitarily set to start on the 1st Jan 2000
+  set start-time time:create "2000-01-01"
   set current-time time:anchor-to-ticks start-time 1.0 "days"
   time:anchor-schedule start-time 1.0 "days"
 
@@ -97,8 +101,6 @@ end
 ; here we have two weights matrices, one for males and one for females
 ; we want to control the expected additive genetic value for the threshold trait
 ; and to weight the contribution of each locus according to a negative exponential function
-; the males multiply their values by -1 for a user-defined number of weights set using n-loci-sign
-; on the gui
 
 to set-parameters
   set WM matrix:from-row-list
@@ -128,7 +130,53 @@ to set-parameters
     ]
   ]
 
-set WMc matrix-row-manipulation WM 0 0 n-loci-sign -1
+  set WMc matrix:from-row-list
+  [
+    [
+      0.9280339
+      0.8612468
+      0.7992662
+      0.7417461
+      0.6883655
+      0.6388265
+      0.5928526
+      0.5501873
+      0.5105924
+      0.4738471
+      0.4397461
+      0.4080993
+      0.3787300
+      0.3514742
+      0.3261800
+      0.3027061
+      0.2809215
+      0.2607046
+      0.2419427
+      0.2245310
+      0
+    ]
+  ]
+
+  matrix:set WMc 0 0 sex_diff_1
+  matrix:set WMc 0 1 sex_diff_2
+  matrix:set WMc 0 2 sex_diff_3
+  matrix:set WMc 0 3 sex_diff_4
+  matrix:set WMc 0 4 sex_diff_5
+  matrix:set WMc 0 5 sex_diff_6
+  matrix:set WMc 0 6 sex_diff_7
+  matrix:set WMc 0 7 sex_diff_8
+  matrix:set WMc 0 8 sex_diff_9
+  matrix:set WMc 0 9 sex_diff_10
+  matrix:set WMc 0 10 sex_diff_11
+  matrix:set WMc 0 11 sex_diff_12
+  matrix:set WMc 0 12 sex_diff_13
+  matrix:set WMc 0 13 sex_diff_14
+  matrix:set WMc 0 14 sex_diff_15
+  matrix:set WMc 0 15 sex_diff_16
+  matrix:set WMc 0 16 sex_diff_17
+  matrix:set WMc 0 17 sex_diff_18
+  matrix:set WMc 0 18 sex_diff_19
+  matrix:set WMc 0 19 sex_diff_20
 
 
 end
@@ -169,23 +217,13 @@ end
   report matrix:from-row-list n-values n [n-values m [runresult generator]]
   end
 
-; this function sets the signs of the weight matrix and allows for differences between the sexes
-; in terms of genetic correlations to be created
-to-report matrix-row-manipulation [matrix row columen-index-start columen-index-end multiplier]
-  let index (range columen-index-start columen-index-end 1)
-  foreach index [ i ->
-    set matrix matrix:set-and-report matrix row i (matrix:get matrix row i * multiplier )
-  ]
-  report matrix
-end
-
 
 ; the weights matrix differs for females and males here
 ; this builds up a gene matrix of 1s and 0s and weights them by the weights matrix
 ; the sum of this matrix G is the genetic value for the threshold trait
 ; this value is used along with the environmental value for each fish to determine which
 ; migratory tactic an individual assumes by adding it to the genetic value to get
-; a phenotypic value z_thresh. If the condition, an entirely environmentally derived value,
+; a phenotypic value z_thresh. If the condition, an entirely environmentally derived value
 ; exceeds your threshold the fish becomes a resident otherwise it becomes anadromous
 
 to set-migratory-behaviour
@@ -241,21 +279,15 @@ to go
      set days-since-child days-since-child + 1
    ]
 
-  ; reproduction starts on 1st December and ends on 4th December
-  ; only females who are adults (> 365) are subject to the reproduction procedures
-  ; of choosing mates and reproducing
-  if my-month = 12 and my-day < 5 and year > 1
+  if my-month = 2
   [
     ask turtles with [age > 365 and habitat = "fresh"] [set mates ( turtle-set )]
     ask turtles with [sex = "female" and age > 365 and habitat = "fresh"] [choose-mates]
     ask turtles with [sex = "female" and age > 0 and habitat = "fresh" and days-since-child >= 365] [reproduce]
   ]
 
-  ; the sneaker tactic can be turned on or off on the gui
-  ; it only applies to adult resident males
   if sneaker?
-   [ ask turtles with [sex = "male" and age > 365 and anadromous = false] [sneaker]
-  ]
+   [ ask turtles with [sex = "male" and age > 365 and anadromous = false] [sneaker] ]
 
 
 end
@@ -312,11 +344,10 @@ end
 ; tells the fish when to migrate
 ; once at sea the fish do not move
 ; they may land on a patch with parasites which will affect their quality
-; this in turn affects their fecundity, if female, or chance of mating, if male
-; fish migrate to sea on 1st April and return to freshwater on 1s November
+; this in turn affects their fecudnity, if female, or chance of mating, if male
 
 to migrate
-  if age > 365 and my-month = 4 and my-day = 1
+  if age > 365 and my-month = 1 and my-day = 1
    [
     move-to one-of patches with [pcolor = blue]
     set habitat "marine"
@@ -329,7 +360,7 @@ to migrate
    ]
 
   if habitat = "marine" [set sea-time sea-time + 1]
-  if my-month = 11 and my-day = 1 and sea-time > 500
+  if my-month = 1 and my-day = 2 and sea-time > 700
    [
     move-to one-of patches with [pcolor = cyan]
     set habitat "fresh"
@@ -490,7 +521,7 @@ n-trout
 n-trout
 0
 5000
-200.0
+100.0
 1
 1
 NIL
@@ -573,9 +604,9 @@ count turtles
 
 SLIDER
 9
-208
+144
 129
-241
+177
 mortalityM
 mortalityM
 0
@@ -588,9 +619,9 @@ HORIZONTAL
 
 INPUTBOX
 11
-245
+181
 142
-305
+241
 anad-death-multiplierM
 2.0
 1
@@ -610,9 +641,9 @@ year
 
 SLIDER
 10
-325
+261
 131
-358
+294
 mortalityF
 mortalityF
 0
@@ -625,9 +656,9 @@ HORIZONTAL
 
 INPUTBOX
 6
-382
+318
 138
-442
+378
 anad-death-multiplierF
 2.0
 1
@@ -636,9 +667,9 @@ Number
 
 SLIDER
 8
-495
+431
 180
-528
+464
 female-mate-radius
 female-mate-radius
 0
@@ -672,9 +703,9 @@ PENS
 
 SLIDER
 7
-528
+464
 179
-561
+497
 carrying-capacity
 carrying-capacity
 0
@@ -687,9 +718,9 @@ HORIZONTAL
 
 SLIDER
 7
-560
+496
 179
-593
+529
 prop-parasites
 prop-parasites
 0.00
@@ -754,13 +785,244 @@ false
 PENS
 "default" 0.5 1 -16777216 true "" "histogram [G] of turtles with [sex = \"male\"] "
 
+SWITCH
+472
+488
+575
+521
+conflict?
+conflict?
+0
+1
+-1000
+
 INPUTBOX
 3
-604
+540
 158
-664
+600
 parasite-load
 2.0
+1
+0
+Number
+
+INPUTBOX
+266
+752
+421
+812
+weight1
+0.0
+1
+0
+Number
+
+INPUTBOX
+426
+753
+581
+813
+weight2
+0.0
+1
+0
+Number
+
+INPUTBOX
+581
+753
+736
+813
+weight3
+0.0
+1
+0
+Number
+
+INPUTBOX
+736
+753
+891
+813
+weight4
+0.0
+1
+0
+Number
+
+INPUTBOX
+892
+752
+1047
+812
+weight5
+0.0
+1
+0
+Number
+
+INPUTBOX
+263
+815
+418
+875
+weight6
+0.0
+1
+0
+Number
+
+INPUTBOX
+423
+816
+578
+876
+weight7
+0.0
+1
+0
+Number
+
+INPUTBOX
+581
+816
+736
+876
+weight8
+0.0
+1
+0
+Number
+
+INPUTBOX
+741
+815
+896
+875
+weight9
+0.0
+1
+0
+Number
+
+INPUTBOX
+899
+815
+1054
+875
+weight10
+0.0
+1
+0
+Number
+
+INPUTBOX
+263
+877
+418
+937
+weight11
+0.0
+1
+0
+Number
+
+INPUTBOX
+421
+876
+576
+936
+weight12
+0.0
+1
+0
+Number
+
+INPUTBOX
+583
+876
+738
+936
+weight13
+0.0
+1
+0
+Number
+
+INPUTBOX
+743
+876
+898
+936
+weight14
+0.0
+1
+0
+Number
+
+INPUTBOX
+898
+877
+1053
+937
+weight15
+0.0
+1
+0
+Number
+
+INPUTBOX
+266
+940
+421
+1000
+weight16
+0.0
+1
+0
+Number
+
+INPUTBOX
+422
+940
+577
+1000
+weight17
+0.0
+1
+0
+Number
+
+INPUTBOX
+584
+939
+739
+999
+weight18
+0.0
+1
+0
+Number
+
+INPUTBOX
+741
+939
+896
+999
+weight19
+0.0
+1
+0
+Number
+
+INPUTBOX
+896
+938
+1051
+998
+weight20
+0.0
 1
 0
 Number
@@ -901,9 +1163,9 @@ PENS
 
 TEXTBOX
 142
-209
+145
 233
-238
+174
 background mortality of males
 11
 0.0
@@ -911,9 +1173,9 @@ background mortality of males
 
 TEXTBOX
 145
-328
+264
 237
-380
+316
 background mortality of females
 11
 0.0
@@ -921,19 +1183,29 @@ background mortality of females
 
 TEXTBOX
 11
-672
+608
 161
-700
+636
 extra mortality due to parasites
 11
 0.0
 1
 
 TEXTBOX
+582
+496
+651
+515
+sexual conflict 
+11
+0.0
+1
+
+TEXTBOX
 147
-386
+322
 232
-451
+387
 extra mortality due to marine environ for females
 11
 0.0
@@ -941,9 +1213,9 @@ extra mortality due to marine environ for females
 
 TEXTBOX
 152
-250
+186
 230
-314
+250
 extra mortality due to marine environ for \nmales
 11
 0.0
@@ -966,6 +1238,17 @@ false
 "" ""
 PENS
 "default" 1.0 1 -7500403 true "" "histogram [quality] of turtles with [sex = \"female\"] "
+
+MONITOR
+944
+423
+1108
+468
+NIL
+current-time
+17
+1
+11
 
 MONITOR
 678
@@ -1001,10 +1284,10 @@ res_quality_mean
 Number
 
 INPUTBOX
-1241
-483
-1396
-543
+1291
+545
+1446
+605
 res_quality_sd
 10.0
 1
@@ -1023,10 +1306,10 @@ anad_quality_mean
 Number
 
 INPUTBOX
-1243
-606
-1398
-666
+1293
+668
+1448
+728
 anad_quality_sd
 10.0
 1
@@ -1045,10 +1328,10 @@ paras_quality_mean
 Number
 
 INPUTBOX
-1240
-545
-1395
-605
+1290
+607
+1445
+667
 paras_quality_sd
 10.0
 1
@@ -1062,7 +1345,7 @@ SWITCH
 526
 sneaker?
 sneaker?
-0
+1
 1
 -1000
 
@@ -1078,9 +1361,9 @@ sneaker tactic by resident males
 
 BUTTON
 17
-730
+666
 83
-763
+699
 Profile
 setup                  ;; set up the model\nprofiler:start         ;; start profiling\nrepeat 30 [ go ]       ;; run something you want to measure\nprofiler:stop          ;; stop profiling\nprint profiler:report  ;; view the results\nprofiler:reset         ;; clear the data
 NIL
@@ -1124,34 +1407,203 @@ NIL
 HORIZONTAL
 
 CHOOSER
-476
-488
-614
-533
-n-loci-sign
-n-loci-sign
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-0
-
-MONITOR
-9
-150
-182
-195
-NIL
-current-time
-17
+377
+553
+469
+598
+sex_diff_1
+sex_diff_1
+0.9280339 -0.9280339
 1
-11
 
-TEXTBOX
-482
-544
-632
-586
-controls the number of loci that have a different sign in the males
-11
-0.0
+CHOOSER
+469
+554
+561
+599
+sex_diff_2
+sex_diff_2
+0.8612468 -0.8612468
+1
+
+CHOOSER
+564
+554
+656
+599
+sex_diff_3
+sex_diff_3
+0.7992662 -0.7992662
+1
+
+CHOOSER
+659
+554
+751
+599
+sex_diff_4
+sex_diff_4
+0.7417461 -0.7417461
+1
+
+CHOOSER
+753
+552
+845
+597
+sex_diff_5
+sex_diff_5
+0.6883655 -0.6883655
+1
+
+CHOOSER
+378
+600
+470
+645
+sex_diff_6
+sex_diff_6
+0.6388265 -0.6388265
+1
+
+CHOOSER
+472
+600
+564
+645
+sex_diff_7
+sex_diff_7
+0.5928526 -0.5928526
+1
+
+CHOOSER
+561
+599
+653
+644
+sex_diff_8
+sex_diff_8
+0.5501873 -0.5501873
+1
+
+CHOOSER
+655
+599
+747
+644
+sex_diff_9
+sex_diff_9
+0.5105924 -0.5105924
+1
+
+CHOOSER
+751
+599
+843
+644
+sex_diff_10
+sex_diff_10
+0.4738471 -0.4738471
+1
+
+CHOOSER
+377
+643
+469
+688
+sex_diff_11
+sex_diff_11
+0.4397461 -0.4397461
+1
+
+CHOOSER
+471
+644
+563
+689
+sex_diff_12
+sex_diff_12
+0.4080993 -0.4080993
+1
+
+CHOOSER
+566
+646
+658
+691
+sex_diff_13
+sex_diff_13
+0.37873 -0.37873
+1
+
+CHOOSER
+659
+645
+751
+690
+sex_diff_14
+sex_diff_14
+0.3514742 -0.3514742
+1
+
+CHOOSER
+753
+644
+845
+689
+sex_diff_15
+sex_diff_15
+0.32618 -0.32618
+1
+
+CHOOSER
+379
+688
+471
+733
+sex_diff_16
+sex_diff_16
+0.3027061 -0.3027061
+1
+
+CHOOSER
+471
+689
+563
+734
+sex_diff_17
+sex_diff_17
+0.2809215 -0.2809215
+1
+
+CHOOSER
+564
+690
+656
+735
+sex_diff_18
+sex_diff_18
+0.2607046 -0.2607046
+1
+
+CHOOSER
+660
+690
+752
+735
+sex_diff_19
+sex_diff_19
+0.2419427 -0.2419427
+1
+
+CHOOSER
+753
+691
+845
+736
+sex_diff_20
+sex_diff_20
+0.224531 -0.224531
 1
 
 @#$#@#$#@
