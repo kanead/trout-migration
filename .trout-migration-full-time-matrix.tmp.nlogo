@@ -490,7 +490,7 @@ n-trout
 n-trout
 0
 5000
-200.0
+100.0
 1
 1
 NIL
@@ -643,7 +643,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-4.0
+3.0
 1
 1
 NIL
@@ -679,7 +679,7 @@ carrying-capacity
 carrying-capacity
 0
 100000
-300.0
+200.0
 1
 1
 NIL
@@ -694,7 +694,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.02
+0.1
 0.01
 1
 NIL
@@ -760,7 +760,7 @@ INPUTBOX
 158
 664
 parasite-load
-2.0
+3.0
 1
 0
 Number
@@ -1131,7 +1131,7 @@ CHOOSER
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-0
+20
 
 MONITOR
 9
