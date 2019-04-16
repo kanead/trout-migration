@@ -5,7 +5,6 @@
 #' https://www.java.com/en/download/manual.jsp
 
 #' load the libraries
-#' 16/04/2019
 library(RNetLogo)
 library(ggplot2)
 library(tidyverse)
@@ -29,7 +28,7 @@ NLLoadModel(
 
 #' change the parameter values ---
 #' starting population of trout 
-NLCommand("set n-trout 100")
+NLCommand("set n-trout 200")
 
 #' male freshwater mortality 
 NLCommand("set mortalityM 1e-05")
@@ -44,13 +43,13 @@ NLCommand("set anad-death-multiplierM 2")
 NLCommand("set anad-death-multiplierF 2")
 
 #' cost of being parasitised multiplier
-NLCommand("set parasite-load 3")
+NLCommand("set parasite-load 2")
 
 #' range that females can see potential mates
-NLCommand("set female-mate-radius 3")
+NLCommand("set female-mate-radius 2")
 
 #' freshwater carrying capacity
-NLCommand("set carrying-capacity 200")
+NLCommand("set carrying-capacity 300")
 
 #' proportion of marine patches that have parasites
 NLCommand("set prop-parasites 0.1")
@@ -88,7 +87,9 @@ NLCommand("set anad_quality_sd 10")
 
 #' control the number of loci that have a different
 #' sign in males than in females 
-NLCommand("set n-loci-sign 20")
+#' 0 means all loci are the same between sexes
+#' 20 means all loci are different between sexes
+NLCommand("set n-loci-sign 0")
 
 #' setup the model 
 NLCommand("setup")
@@ -105,16 +106,22 @@ agents <- "turtles"
 reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
 nlogo_ret <- RNetLogo::NLReport(reporters)
 
-
+#' look at the correlation of g between the sexes
 turtle_G <- NLGetAgentSet(c("g" ,"color"), "turtles")
 #' male color code is 15 
 #' female colour code is 5
 maleG <- filter(turtle_G, color == 15) %>% select(g)
 femaleG <- filter(turtle_G, color == 5) %>% select(g)
-cor.test(maleG$g,head(femaleG$g,length(maleG$g)))
-cor.test(head(maleG$g,length(femaleG$g)), femaleG$g)
-plot(maleG$g,head(femaleG$g,length(maleG$g)))
-plot(head(maleG$g,length(femaleG$g)), femaleG$g)
+#' calculate the correlation
+ifelse(
+  length(femaleG$g) > length(maleG$g),
+  cor.test(maleG$g, head(femaleG$g, length(maleG$g))),
+  cor.test(head(maleG$g, length(femaleG$g)), femaleG$g)
+)
+#' plot the correlation
+ifelse(length(femaleG$g) > length(maleG$g),
+       plot(maleG$g, head(femaleG$g, length(maleG$g))),
+       plot(head(maleG$g, length(femaleG$g)), femaleG$g))
 
 #' run the model for x by y ticks and extract the reporters
 #' every y ticks

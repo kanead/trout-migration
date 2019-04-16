@@ -232,7 +232,7 @@ to go
   set my-month  time:get "month" current-time ; extract the month so fish can keep track of their schedule
   set my-day  time:get "day" current-time ; extract the day so fish can keep track of their schedule
 
-  if count turtles > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
+  if count turtles with [habitat = "fresh"] > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
     [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
 
   ask turtles
@@ -319,10 +319,10 @@ end
 ; once at sea the fish do not move
 ; they may land on a patch with parasites which will affect their quality
 ; this in turn affects their fecundity, if female, or chance of mating, if male
-; fish migrate to sea on 1st April and return to freshwater on 1s November
+; fish migrate to sea on 1st April and return to freshwater on 1st November
 
 to migrate
-  if age > 365 and my-month = 4 and my-day = 1
+  if age > 365 and my-month = 4 and my-day = 1 and habitat = "fresh"
    [
     move-to one-of patches with [pcolor = blue]
     set habitat "marine"
@@ -403,7 +403,6 @@ to grim-reaper
   let chance-to-die (num-turtles - carrying-capacity) / num-turtles
   if random-float 1.0 < chance-to-die [ die ]
 end
-
 
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1139,7 +1138,7 @@ CHOOSER
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-20
+0
 
 MONITOR
 9
