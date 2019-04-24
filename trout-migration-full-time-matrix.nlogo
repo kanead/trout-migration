@@ -403,7 +403,6 @@ to grim-reaper
   let chance-to-die (num-turtles - carrying-capacity) / num-turtles
   if random-float 1.0 < chance-to-die [ die ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 246
