@@ -232,35 +232,42 @@ to go
   set my-month  time:get "month" current-time ; extract the month so fish can keep track of their schedule
   set my-day  time:get "day" current-time ; extract the day so fish can keep track of their schedule
 
-  if count turtles with [habitat = "fresh"] > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
+;1. Mortality actions:
+;  if count turtles with [habitat = "fresh"] > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
+  while [count turtles with [habitat = "fresh"] > carrying-capacity]
     [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
 
+  mortality
+
+;2. Age, move and migrate:
   ask turtles
-   [  mortality
-     if habitat = "fresh" [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
+   [
      set age (1 + age)  ;increment-age
-     if anadromous [migrate]
+     if sex = "female" [ set days-since-child days-since-child + 1 ]
+     if habitat = "fresh" [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
+     if anadromous and age > 365 [migrate]
    ]
 
-  ask turtles with [sex = "female"]
-   [
-     set days-since-child days-since-child + 1
-   ]
+
+;3. Reproduction actions:
 
   ; reproduction starts on 1st December and ends on 4th December
   ; only females who are adults (> 365) are subject to the reproduction procedures
   ; of choosing mates and reproducing
   if my-month = 12 and my-day < 5 and year > 1
   [
-    ask turtles with [age > 365 and habitat = "fresh"] [set mates ( turtle-set )]
-    ask turtles with [sex = "female" and age > 365 and habitat = "fresh"] [choose-mates]
-    ask turtles with [sex = "female" and age > 365 and habitat = "fresh" and days-since-child >= 365] [reproduce]
-  ]
-
-  ; the sneaker tactic can be turned on or off on the gui
-  ; it only applies to adult resident males
-  if sneaker?
-   [ ask turtles with [sex = "male" and age > 365 and anadromous = false] [sneaker]
+    let spawners turtles with [age > 365 and habitat = "fresh"]
+    let sneakers spawners with [sex = "male" and anadromous = false]
+    ask sneakers [sneaker] ;; the sneaker tactic can be turned on or off on the gui; it only applies to adult resident males
+    ask spawners [set mates ( turtle-set )]
+    ask spawners with [sex = "female" and days-since-child >= 365]
+     [
+      choose-mates
+      reproduce
+     ]
+;    ask spawners with [sex = "female" and days-since-child >= 365] [choose-mates]
+;    ask spawners with [sex = "female" and days-since-child >= 365] [reproduce]
+    ask sneakers [set quality start_quality]
   ]
 
 
@@ -276,20 +283,22 @@ end
 to mortality
   ask turtles with [sex = "male"]
    [
-    ifelse habitat = "fresh"
-     [set prob-death mortalityM ; chance of dying on any turn in freshwater
-      if random-float 1 < prob-death [die] ] ; death procedure
+      ifelse habitat = "fresh"
      [
-      ifelse state = "healthy"
+      set prob-death mortalityM ; chance of dying on any turn in freshwater
+      if random-float 1 < prob-death [die]
+     ] ; death procedure
+     [
+       ifelse state = "healthy"
         [ set prob-death mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
         [ set prob-death mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
-      ]
-     if random-float 1 < prob-death [die] ; death procedure
-    ]
+     ]
+    if random-float 1 < prob-death [die] ; death procedure
+   ]
 
   ask turtles with [sex = "female"]
     [
-     ifelse habitat = "fresh"
+      ifelse habitat = "fresh"
       [set prob-death mortalityF ; chance of dying on any turn in freshwater
         if random-float 1 < prob-death [die] ] ; death procedure
       [
@@ -322,16 +331,16 @@ end
 ; fish migrate to sea on 1st April and return to freshwater on 1st November
 
 to migrate
-  if age > 365 and my-month = 4 and my-day = 1 and habitat = "fresh"
+  if my-month = 4 and my-day = 1 and habitat = "fresh"
    [
     move-to one-of patches with [pcolor = blue]
     set habitat "marine"
 
-      if parasites? = "yes"
-   [
+    if parasites? = "yes"
+    [
      set state "parasitised"
      set quality random-normal paras_quality_mean paras_quality_sd ; 150 10
-   ]
+    ]
    ]
 
   if habitat = "marine" [set sea-time sea-time + 1]
@@ -349,7 +358,8 @@ end
 ; this quality variable is set based on the migratory tactic and can vary if you are a sneaker or if you have been parasitised
 
 to choose-mates
-  let availa-males turtles with [sex = "male"] in-radius female-mate-radius with [habitat = "fresh" and age > 365]
+  let male-spawners turtles with [sex = "male" and habitat = "fresh" and age > 365]
+  let availa-males male-spawners in-radius female-mate-radius
   let max-mate-count min (list 5 count availa-males)
   let new-mates rnd:weighted-n-of max-mate-count availa-males [ quality ]
   set mates (turtle-set mates new-mates)
@@ -381,6 +391,7 @@ to reproduce
           matrix:set-column GM 1 matrix:get-row fatherLocus 0
 
           set state "healthy"
+          set mates (turtle-set)
           ifelse random 2 = 1
            [
             set color red
@@ -598,7 +609,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-2.0
+3.0
 1
 0
 Number
@@ -635,7 +646,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-2.0
+3.0
 1
 0
 Number
@@ -700,7 +711,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.02
+0.25
 0.01
 1
 NIL
@@ -1144,8 +1155,8 @@ MONITOR
 150
 182
 195
-NIL
-current-time
+Current time
+time:show current-time \"yyyy-MM-dd\"
 17
 1
 11
@@ -1159,6 +1170,17 @@ controls the number of loci that have a different sign in the males
 11
 0.0
 1
+
+MONITOR
+1223
+367
+1306
+412
+max sea age
+max [sea-time] of turtles with [pcolor = blue]
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
