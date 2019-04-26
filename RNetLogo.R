@@ -369,6 +369,10 @@ head(mydata5)
 library(gdata)
 all_data<-combine(mydata1,mydata2,mydata3,mydata4,mydata5)
 
+#' iteration needs to be ordered properly 
+all_data$iteration <-
+  factor(all_data$iteration,
+         levels = c(3650, 7300, 10950, 14600, 18250, 21900, 25550, 29200, 32850, 36500))
 
 #' plot a smooth of the genetic value g for each run
 all_data %>% filter(sex == "male") %>%
@@ -385,6 +389,8 @@ mydata5 %>% filter(iteration == 36500) %>%
   group_by(sex) %>%
   dplyr::summarize(Length = length(sex))
 
+#' export the data
+write.csv(all_data,file="C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\baseline_run.csv",row.names = F)
 
 ##### NetLogo Parallelization  ----
 
