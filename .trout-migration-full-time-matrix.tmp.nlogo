@@ -609,7 +609,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-3.0
+2.0
 1
 0
 Number
@@ -646,7 +646,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-3.0
+2.0
 1
 0
 Number
@@ -660,7 +660,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-4.0
+2.0
 1
 1
 NIL
@@ -711,7 +711,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.25
+0.1
 0.01
 1
 NIL

@@ -27,13 +27,13 @@ NLLoadModel(
 )
 
 #' change the parameter values ---
-#' starting population of trout 
+#' starting population of trout
 NLCommand("set n-trout 200")
 
-#' male freshwater mortality 
+#' male freshwater mortality
 NLCommand("set mortalityM 1e-05")
 
-#' female freshwater mortality 
+#' female freshwater mortality
 NLCommand("set mortalityF 1e-05")
 
 #' male marine mortality multiplier
@@ -49,7 +49,7 @@ NLCommand("set parasite-load 2")
 NLCommand("set female-mate-radius 2")
 
 #' freshwater carrying capacity
-NLCommand("set carrying-capacity 300")
+NLCommand("set carryingCapacity 300")
 
 #' proportion of marine patches that have parasites
 NLCommand("set prop-parasites 0.1")
@@ -57,45 +57,45 @@ NLCommand("set prop-parasites 0.1")
 #' sneaker tactic by resident males on or off
 NLCommand("set sneaker? TRUE")
 
-#' set the threshold proportion of anadramous males 
+#' set the threshold proportion of anadramous males
 #' around which a resident should find itself before
 #' adopting a sneaker tactic
 NLCommand("set sneaker_thresh 0.8")
 
 #' set the bump in quality that a sneaker male
-#' gets which will affect its chance of being 
+#' gets which will affect its chance of being
 #' selected
 NLCommand("set sneaker_boost 200")
 
-#' mean quality of resident trout 
+#' mean quality of resident trout
 NLCommand("set res_quality_mean 100")
 
-#' SD quality of resident trout 
+#' SD quality of resident trout
 NLCommand("set res_quality_sd 10")
 
-#' mean quality of parasitised trout 
+#' mean quality of parasitised trout
 NLCommand("set paras_quality_mean 150")
 
-#' SD quality of parasitised trout 
+#' SD quality of parasitised trout
 NLCommand("set paras_quality_sd 10")
 
-#' mean quality of marine trout 
+#' mean quality of marine trout
 NLCommand("set anad_quality_mean 200")
 
-#' SD quality of marine trout 
+#' SD quality of marine trout
 NLCommand("set anad_quality_sd 10")
 
 #' control the number of loci that have a different
-#' sign in males than in females 
+#' sign in males than in females
 #' 0 means all loci are the same between sexes
 #' 20 means all loci are different between sexes
 NLCommand("set n-loci-sign 0")
 
-#' setup the model 
+#' setup the model
 NLCommand("setup")
 
 #' test the model
-#' run it for 100 ticks 
+#' run it for 100 ticks
 #' NLDoCommand(100, "go")
 #' setup the model again after the test
 #' NLCommand("setup")
@@ -106,26 +106,9 @@ agents <- "turtles"
 reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
 nlogo_ret <- RNetLogo::NLReport(reporters)
 
-#' look at the correlation of g between the sexes
-turtle_G <- NLGetAgentSet(c("g" ,"color"), "turtles")
-#' male color code is 15 
-#' female colour code is 5
-maleG <- filter(turtle_G, color == 15) %>% select(g)
-femaleG <- filter(turtle_G, color == 5) %>% select(g)
-#' calculate the correlation
-ifelse(
-  length(femaleG$g) > length(maleG$g),
-  cor.test(maleG$g, head(femaleG$g, length(maleG$g))),
-  cor.test(head(maleG$g, length(femaleG$g)), femaleG$g)
-)
-#' plot the correlation
-ifelse(length(femaleG$g) > length(maleG$g),
-       plot(maleG$g, head(femaleG$g, length(maleG$g))),
-       plot(head(maleG$g, length(femaleG$g)), femaleG$g))
-
 #' run the model for x by y ticks and extract the reporters
 #' every y ticks
-test <-
+run <-
   NLDoReport(
     10,
     "repeat 1000 [go]",
@@ -134,17 +117,17 @@ test <-
     df.col.names = c("ticks", reporters)
   )
 
-print(test)
-class(test)
-test$`map [x -> [g] of x ] sort turtles`
+print(run)
+class(run)
+run$`map [x -> [g] of x ] sort turtles`
 
 mydata <-
   data.frame(cbind(
-    unlist(test$`map [x -> [sex] of x ] sort turtles`),
-    unlist(test$`map [x -> [g] of x ] sort turtles`),
-    unlist(test$`map [x -> [ticks] of x ] sort turtles`),
-    unlist(test$`map [x -> [anadromous] of x ] sort turtles`),
-    unlist(test$`map [x -> [who] of x ] sort turtles`)
+    unlist(run$`map [x -> [sex] of x ] sort turtles`),
+    unlist(run$`map [x -> [g] of x ] sort turtles`),
+    unlist(run$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(run$`map [x -> [anadromous] of x ] sort turtles`),
+    unlist(run$`map [x -> [who] of x ] sort turtles`)
   ))
 
 #' rename the variables
@@ -171,26 +154,26 @@ mydata$iteration <-
          levels = c(1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000))
 
 #' plot the data
-#' note the dot used in place of mydata because 
-#' we're using pipes 
-#' 
+#' note the dot used in place of mydata because
+#' we're using pipes
+#'
 
 #' first for males
 filter(mydata, sex == "male") %>% ggplot(.) +
   geom_histogram(aes(g)) +
   #' class of iteration needs to be changed so that it plot in numerical order
-  facet_wrap( ~ reorder(iteration, sort(as.numeric(iteration))))
+  facet_wrap(~ reorder(iteration, sort(as.numeric(iteration))))
 
 #' now for females
 filter(mydata, sex == "female") %>% ggplot(.) +
   geom_histogram(aes(g)) +
-  facet_wrap( ~ iteration)
+  facet_wrap(~ iteration)
 
 #' filter by resident males
 filter(mydata, sex == "male", anadromous == "FALSE") %>% ggplot(.) +
   geom_histogram(aes(g)) +
   #' class of iteration needs to be changed so that it plot in numerical order
-  facet_wrap(~ reorder(iteration, sort(as.numeric(iteration))))
+  facet_wrap( ~ reorder(iteration, sort(as.numeric(iteration))))
 
 #' boxplots
 mydata %>% ggplot(.) +
@@ -232,54 +215,188 @@ cbind(mydata, lst)
 mydata <- cbind(mydata, lst)
 tail(mydata)
 
-#' matrix multiplication for genetic architecture
-#' weights matrix
-WM <- matrix(c(
-0.9280339,
-0.8612468,
-0.7992662,
-0.7417461,
-0.6883655,
-0.6388265,
-0.5928526,
-0.5501873,
-0.5105924,
-0.4738471,
-0.4397461,
-0.4080993,
-0.3787300,
-0.3514742,
-0.3261800,
-0.3027061,
-0.2809215,
-0.2607046,
-0.2419427,
-0.2245310,
-0),ncol=21)
-dim(WM)
 
-#' genotype matrix
-GM <- matrix(sample(0:2, size = 21, replace = T), ncol = 21)
-dim(GM)
 
-#' transpose of weights matrix
-WMt <- t(WM)
+#######' run the model multiple times on the same core ----
 
-#' multiply genotype matrix by transpose of weights matrix
-#' this produces the genetic value
-GM %*% WMt
+#' the function for the model 
+simfun <- function(carryingCapacity) {
+  NLCommand("set carryingCapacity ", carryingCapacity, "setup")
+  #' the reporters for the model 
+  vars <- c("ticks", "who", "g" , "sex", "gm_val")
+  agents <- "turtles"
+  reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
+  nlogo_ret <- RNetLogo::NLReport(reporters)
+  run <-
+    NLDoReport(
+      10,
+      "repeat 3650 [go]",
+      c("ticks", reporters),
+      as.data.frame = T,
+      df.col.names = c("ticks", reporters)
+    )
+}
+
+# Replicate the simulation
+rep.sim <- function(carryingCapacity, rep) {
+  lapply(carryingCapacity, function(x) replicate(rep, simfun(x)))
+}
+
+#will take about 10 minutes !
+K <- c(300)
+res <- rep.sim(K, 5)  #replicate sim 5 times for each K
+
+res1<-res[[1]][,1]
+res2<-res[[1]][,2]
+res3<-res[[1]][,3]
+res4<-res[[1]][,4]
+res5<-res[[1]][,5]
+
+mydata1 <-
+  data.frame(cbind(
+    unlist(res1$`map [x -> [sex] of x ] sort turtles`),
+    unlist(res1$`map [x -> [g] of x ] sort turtles`),
+    unlist(res1$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(res1$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+mydata2 <-
+  data.frame(cbind(
+    unlist(res2$`map [x -> [sex] of x ] sort turtles`),
+    unlist(res2$`map [x -> [g] of x ] sort turtles`),
+    unlist(res2$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(res2$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+
+mydata3 <-
+  data.frame(cbind(
+    unlist(res3$`map [x -> [sex] of x ] sort turtles`),
+    unlist(res3$`map [x -> [g] of x ] sort turtles`),
+    unlist(res3$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(res3$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+
+mydata4 <-
+  data.frame(cbind(
+    unlist(res4$`map [x -> [sex] of x ] sort turtles`),
+    unlist(res4$`map [x -> [g] of x ] sort turtles`),
+    unlist(res4$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(res4$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+
+mydata5 <-
+  data.frame(cbind(
+    unlist(res5$`map [x -> [sex] of x ] sort turtles`),
+    unlist(res5$`map [x -> [g] of x ] sort turtles`),
+    unlist(res5$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(res5$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+#' rename the variables
+mydata1 <-
+  rename(
+    mydata1,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+#' make sure g is classified as numeric
+mydata1$g <- as.numeric(as.character(mydata1$g))
+head(mydata1)
+
+#' rename the variables
+mydata2 <-
+  rename(
+    mydata2,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+#' make sure g is classified as numeric
+mydata2$g <- as.numeric(as.character(mydata2$g))
+head(mydata2)
+
+#' rename the variables
+mydata3 <-
+  rename(
+    mydata3,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+#' make sure g is classified as numeric
+mydata3$g <- as.numeric(as.character(mydata3$g))
+head(mydata3)
+
+#' rename the variables
+mydata4 <-
+  rename(
+    mydata4,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+#' make sure g is classified as numeric
+mydata4$g <- as.numeric(as.character(mydata4$g))
+head(mydata4)
+
+#' rename the variables
+mydata5 <-
+  rename(
+    mydata5,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+#' make sure g is classified as numeric
+mydata5$g <- as.numeric(as.character(mydata5$g))
+head(mydata5)
+
+#' combine the data frames 
+library(gdata)
+all_data<-combine(mydata1,mydata2,mydata3,mydata4,mydata5)
+
+
+#' plot a smooth of the genetic value g for each run
+all_data %>% filter(sex == "male") %>%
+ggplot(., aes(as.numeric(iteration), g, colour = source)) +
+  geom_smooth(se = T,alpha=0.2)
+
+all_data %>% filter(sex == "female") %>%
+  ggplot(., aes(as.numeric(iteration), g, colour = source)) +
+  geom_smooth(se = T,alpha=0.2)
+
+#' compare the last run of the model
+#' with the last dataframe as a check
+mydata5 %>% filter(iteration == 36500) %>%
+  group_by(sex) %>%
+  dplyr::summarize(Length = length(sex))
+
 
 ##### NetLogo Parallelization  ----
 
 #' Simple example
 testfun1 <- function(x) {
-  return(x*x)
-   }
+  return(x * x)
+}
 
 my.v1 <- 1:10
 my.v1.quad <- sapply(my.v1, testfun1)
-my.v1.quad 
-library(parallel) 
+my.v1.quad
+library(parallel)
 
 processors <- detectCores()
 # create a cluster
@@ -293,14 +410,14 @@ stopCluster(cl)
 #' use clusters to run multiple versions of the model
 
 #'  To parallelize RNetLogo we need this initialization to be
-#'  done for every processor, because they are independent from each 
-#'  other (which is a very important property, because, for example, 
-#'  random processes in parallel simulations should not be influenced 
+#'  done for every processor, because they are independent from each
+#'  other (which is a very important property, because, for example,
+#'  random processes in parallel simulations should not be influenced
 #'  by each other).
-#'  
-#'  Therefore, it makes sence to put the initialization, the simulation, 
-#'  and the quiting process into separate functions. These functions can 
-#'  look like the following (if you want to test these, don't forget to 
+#'
+#'  Therefore, it makes sence to put the initialization, the simulation,
+#'  and the quiting process into separate functions. These functions can
+#'  look like the following (if you want to test these, don't forget to
 #'  adapt the paths appropriate):
 
 library(rJava)
@@ -325,21 +442,22 @@ cl
 # the initialization function
 prepro <- function(dummy, gui, nl.path, model.path) {
   library(RNetLogo)
-  NLStart(nl.path, gui=gui,nl.jarname = "netlogo-6.0.4.jar")
+  NLStart(nl.path, gui = gui, nl.jarname = "netlogo-6.0.4.jar")
   NLLoadModel(model.path)
 }
 
 
 simfun <- function(density) {
-  
   sim <- function(density) {
     NLCommand("set density ", density, "setup")
-    NLDoCommandWhile("any? turtles", "go");
+    NLDoCommandWhile("any? turtles", "go")
+    
     ret <- NLReport("(burned-trees / initial-trees) * 100")
     return(ret)
   }
   
-  lapply(density, function(x) replicate(20, sim(x)))
+  lapply(density, function(x)
+    replicate(20, sim(x)))
 }
 
 
@@ -362,24 +480,31 @@ model.path <- "models\\Sample Models\\Earth Science\\Fire.nlogo"
 
 
 # load NetLogo in each processor/core
-invisible(parLapply(cl, 
-                    1:processors, 
-                    prepro, 
-                    gui=gui,
-                    nl.path=nl.path, 
-                    model.path=model.path)
+invisible(
+  parLapply(
+    cl,
+    1:processors,
+    prepro,
+    gui = gui,
+    nl.path = nl.path,
+    model.path = model.path
+  )
 )
 
 
 ### Run over these 11 densities
 d <- seq(55, 65, 1)
-result.par <- parSapply(cl, d, simfun) # runs the simfunfunction over  clusters varying by density
+result.par <-
+  parSapply(cl, d, simfun) # runs the simfunfunction over  clusters varying by density
 result.par
 
-burned.df <- data.frame(density=rep(55:65,each=20), pctburned=unlist(result.par))
+burned.df <-
+  data.frame(density = rep(55:65, each = 20),
+             pctburned = unlist(result.par))
 
 library(ggplot2)
-ggplot(burned.df, aes(x=factor(density), y=pctburned)) + geom_boxplot(alpha=.1) + geom_point()
+ggplot(burned.df, aes(x = factor(density), y = pctburned)) + geom_boxplot(alpha =
+                                                                            .1) + geom_point()
 
 #' can quit out of NetLogo with NLQuit()
 #' note that you cannot reopen NetLogo once you do this
@@ -390,4 +515,126 @@ invisible(parLapply(cl, 1:processors, postpro))
 
 # stop cluster
 stopCluster(cl)
+
+#'----
+#' do the same for the trout model
+#' 
+#' load the libraries
+#' load the parallel package
+library(parallel)
+library(RNetLogo)
+
+# detect the number of cores available
+processors <- detectCores()
+processors
+
+# create a cluster
+cl <- makeCluster(processors)
+cl
+
+# the initialization function
+prepro <- function(dummy, gui, nl.path, model.path) {
+  library(RNetLogo)
+  NLStart(nl.path, gui = gui, nl.jarname = "netlogo-6.0.4.jar")
+  NLLoadModel(model.path)
+}
+
+
+#' the function for the model 
+simfun <- function(carryingCapacity) {
+  NLCommand("set carryingCapacity ", carryingCapacity, "setup")
+  #' the reporters for the model 
+  vars <- c("ticks", "who", "g" , "sex", "anadromous", "gm_val")
+  agents <- "turtles"
+  reporters <- sprintf("map [x -> [%s] of x ] sort %s", vars, agents)
+  nlogo_ret <- RNetLogo::NLReport(reporters)
+  run <-
+    NLDoReport(
+      2,
+      "repeat 1000 [go]",
+      c("ticks", reporters),
+      as.data.frame = T,
+      df.col.names = c("ticks", reporters)
+    )
+}
+
+# the quit function
+postpro <- function(x) {
+  NLQuit()
+}
+
+
+# set variables for the start up process
+# adapt path appropriate (or set an environment variable NETLOGO_PATH)
+gui <- TRUE
+nl.path <- "C:\\Program Files\\NetLogo 6.0.4\\app"
+model.path <-
+  "C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\trout-migration-full-time-matrix.nlogo"
+
+# load NetLogo in each processor/core
+invisible(
+  parLapply(
+    cl,
+    1:processors,
+    prepro,
+    gui = gui,
+    nl.path = nl.path,
+    model.path = model.path
+  )
+)
+#' the number of 1000 ticks simulations we want to run
+#' sampling takes place every 1000th tick
+slice <- 10
+print(slice)
+
+result.par <- parSapply(cl, slice, simfun)
+
+# Quit NetLogo in each processor/core
+invisible(parLapply(cl, 1:processors, postpro))
+
+# stop cluster
+stopCluster(cl)
+
+
+
+#' matrix multiplication for genetic architecture
+#' weights matrix
+WM <- matrix(
+  c(
+    0.9280339,
+    0.8612468,
+    0.7992662,
+    0.7417461,
+    0.6883655,
+    0.6388265,
+    0.5928526,
+    0.5501873,
+    0.5105924,
+    0.4738471,
+    0.4397461,
+    0.4080993,
+    0.3787300,
+    0.3514742,
+    0.3261800,
+    0.3027061,
+    0.2809215,
+    0.2607046,
+    0.2419427,
+    0.2245310,
+    0
+  ),
+  ncol = 21
+)
+dim(WM)
+
+#' genotype matrix
+GM <- matrix(sample(0:2, size = 21, replace = T), ncol = 21)
+dim(GM)
+
+#' transpose of weights matrix
+WMt <- t(WM)
+
+#' multiply genotype matrix by transpose of weights matrix
+#' this produces the genetic value
+GM %*% WMt
 
