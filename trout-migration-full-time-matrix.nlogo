@@ -507,7 +507,7 @@ n-trout
 n-trout
 0
 5000
-200.0
+100.0
 1
 1
 NIL
@@ -597,7 +597,7 @@ mortalityM
 mortalityM
 0
 .004
-1.0E-5
+2.0E-4
 .00001
 1
 NIL
@@ -609,7 +609,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-3.0
+20.0
 1
 0
 Number
@@ -634,7 +634,7 @@ mortalityF
 mortalityF
 0
 0.004
-1.0E-5
+2.0E-4
 .00001
 1
 NIL
@@ -646,7 +646,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-3.0
+20.0
 1
 0
 Number
@@ -777,7 +777,7 @@ INPUTBOX
 158
 664
 parasite-load
-2.0
+0.0
 1
 0
 Number
