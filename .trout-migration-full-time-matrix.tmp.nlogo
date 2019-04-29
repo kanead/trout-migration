@@ -507,7 +507,7 @@ n-trout
 n-trout
 0
 5000
-200.0
+100.0
 1
 1
 NIL
@@ -597,7 +597,7 @@ mortalityM
 mortalityM
 0
 .004
-1.0E-5
+5.0E-4
 .00001
 1
 NIL
@@ -634,7 +634,7 @@ mortalityF
 mortalityF
 0
 0.004
-1.0E-5
+5.0E-4
 .00001
 1
 NIL
@@ -660,7 +660,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-2.0
+4.0
 1
 1
 NIL
@@ -711,7 +711,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.1
+0.25
 0.01
 1
 NIL
@@ -777,7 +777,7 @@ INPUTBOX
 158
 664
 parasite-load
-2.0
+0.0
 1
 0
 Number

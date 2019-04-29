@@ -28,7 +28,7 @@ NLLoadModel(
 
 #' change the parameter values ---
 #' starting population of trout
-NLCommand("set n-trout 200")
+NLCommand("set n-trout 100")
 
 #' male freshwater mortality
 NLCommand("set mortalityM 1e-05")
@@ -37,10 +37,10 @@ NLCommand("set mortalityM 1e-05")
 NLCommand("set mortalityF 1e-05")
 
 #' male marine mortality multiplier
-NLCommand("set anad-death-multiplierM 2")
+NLCommand("set anad-death-multiplierM 100")
 
 #' female marine mortality multiplier
-NLCommand("set anad-death-multiplierF 2")
+NLCommand("set anad-death-multiplierF 100")
 
 #' cost of being parasitised multiplier
 NLCommand("set parasite-load 2")
@@ -218,7 +218,7 @@ tail(mydata)
 
 
 #######' run the model multiple times on the same core ----
-
+#' this samples the model once every 3650 days ~ 10 years
 #' the function for the model 
 simfun <- function(carryingCapacity) {
   NLCommand("set carryingCapacity ", carryingCapacity, "setup")
@@ -243,15 +243,17 @@ rep.sim <- function(carryingCapacity, rep) {
 }
 
 #will take about 10 minutes !
-K <- c(300)
+K <- c(300) #' carry capacity 
 res <- rep.sim(K, 5)  #replicate sim 5 times for each K
 
+#' pull out the data for each run from the list columns 
 res1<-res[[1]][,1]
 res2<-res[[1]][,2]
 res3<-res[[1]][,3]
 res4<-res[[1]][,4]
 res5<-res[[1]][,5]
 
+#' transform each run into a dataframe 
 mydata1 <-
   data.frame(cbind(
     unlist(res1$`map [x -> [sex] of x ] sort turtles`),
@@ -374,14 +376,15 @@ all_data$iteration <-
   factor(all_data$iteration,
          levels = c(3650, 7300, 10950, 14600, 18250, 21900, 25550, 29200, 32850, 36500))
 
-#' plot a smooth of the genetic value g for each run
+#' plot a smooth of mean genetic value g for each run over time
+#' do a separate plot for males and females 
 all_data %>% filter(sex == "male") %>%
 ggplot(., aes(as.numeric(iteration), g, colour = source)) +
-  geom_smooth(se = T,alpha=0.2)
+  geom_smooth(se = T,alpha=0.2) + ggtitle("starting pop 100: males marine mortality")
 
 all_data %>% filter(sex == "female") %>%
   ggplot(., aes(as.numeric(iteration), g, colour = source)) +
-  geom_smooth(se = T,alpha=0.2)
+  geom_smooth(se = T,alpha=0.2) + ggtitle("starting pop 100: females marine mortality")
 
 #' compare the last run of the model
 #' with the last dataframe as a check
@@ -389,8 +392,35 @@ mydata5 %>% filter(iteration == 36500) %>%
   group_by(sex) %>%
   dplyr::summarize(Length = length(sex))
 
+#' plot the variance of g over time
+all_data %>% filter(sex == "male") %>% group_by(iteration, source) %>% summarise(var = var(g)) %>%  ggplot(., aes(as.numeric(iteration), var, colour = source)) +
+  geom_line() + ggtitle("starting pop 100: males")
+
+all_data %>% filter(sex == "female") %>% group_by(iteration, source) %>% summarise(var = var(g)) %>%  ggplot(., aes(as.numeric(iteration), var, colour = source)) +
+  geom_line() + ggtitle("starting pop 100: females")
+
 #' export the data
-write.csv(all_data,file="C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\baseline_run.csv",row.names = F)
+#' desktop
+write.csv(all_data, file = "C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\baseline_run_100.csv", row.names = F)
+
+#' laptop
+write.csv(all_data, file = "C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\marine_mort_100_100.csv", row.names = F)
+
+
+#' can load in previously saved data 
+#' desktop
+mydata <- read.csv(file = "C:\\Users\\Adam Kane\\Documents\\Manuscripts\\Trout migration\\trout-migration\\baseline_run_100.csv", header = TRUE)
+
+#' laptop
+mydata <- read.csv(file = "C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\baseline_run_100.csv", header = TRUE)
+
+#' and plot it 
+mydata %>% filter(sex == "male") %>% group_by(iteration, source) %>% summarise(var = var(g)) %>%  ggplot(., aes(as.numeric(iteration), var, colour = source)) +
+  geom_line() + ggtitle("starting pop 100: males")
+
+mydata %>% filter(sex == "female") %>% group_by(iteration, source) %>% summarise(var = var(g)) %>%  ggplot(., aes(as.numeric(iteration), var, colour = source)) +
+  geom_line() + ggtitle("starting pop 100: females")
+
 
 ##### NetLogo Parallelization  ----
 
