@@ -237,13 +237,13 @@ simfun <- function(carryingCapacity) {
     )
 }
 
-# Replicate the simulation
+#' Replicate the simulation
 rep.sim <- function(carryingCapacity, rep) {
   lapply(carryingCapacity, function(x) replicate(rep, simfun(x)))
 }
 
-#will take about 10 minutes !
-K <- c(300) #' carry capacity 
+#' will take about 10 minutes !
+K <- c(300) #' carrying capacity 
 res <- rep.sim(K, 5)  #replicate sim 5 times for each K
 
 #' pull out the data for each run from the list columns 
