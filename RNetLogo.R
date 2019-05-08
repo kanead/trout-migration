@@ -111,7 +111,7 @@ nlogo_ret <- RNetLogo::NLReport(reporters)
 run <-
   NLDoReport(
     10,
-    "repeat 1000 [go]",
+    "repeat 100 [go]",
     c("ticks", reporters),
     as.data.frame = T,
     df.col.names = c("ticks", reporters)
@@ -194,12 +194,12 @@ mydata %>% group_by(iteration, sex) %>% summarise(mean = mean(g))
 
 #' can extract the allele frequencies
 alleleFreq <-
-  data.frame(cbind(unlist(test$`map [x -> [gm_val] of x ] sort turtles`)))
+  data.frame(cbind(unlist(run$`map [x -> [gm_val] of x ] sort turtles`)))
 head(alleleFreq)
 
 #' rename
 alleleFreq <-
-  rename(alleleFreq, gm_val = cbind.unlist.test..map..x.....gm_val..of.x...sort.turtles...)
+  rename(alleleFreq, gm_val = cbind.unlist.run..map..x.....gm_val..of.x...sort.turtles...)
 head(alleleFreq)
 tail(alleleFreq, 21)
 length(alleleFreq$gm_val) / 21
@@ -244,7 +244,7 @@ rep.sim <- function(carryingCapacity, rep) {
 
 #' will take about 10 minutes !
 K <- c(300) #' carrying capacity 
-res <- rep.sim(K, 5)  #replicate sim 5 times for each K
+res <- rep.sim(K, 5)  #' replicate sim 5 times for each K
 
 #' pull out the data for each run from the list columns 
 res1<-res[[1]][,1]
@@ -420,6 +420,9 @@ mydata %>% filter(sex == "male") %>% group_by(iteration, source) %>% summarise(v
 
 mydata %>% filter(sex == "female") %>% group_by(iteration, source) %>% summarise(var = var(g)) %>%  ggplot(., aes(as.numeric(iteration), var, colour = source)) +
   geom_line() + ggtitle("starting pop 100: females")
+
+#' clean the code more efficiently 
+test<-data.frame(res)
 
 
 ##### NetLogo Parallelization  ----
