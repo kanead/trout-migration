@@ -3,6 +3,7 @@
 #' https://www.youtube.com/watch?v=3EmHi0roiM8
 #' you may need to download 64 bit java if you get an error
 #' https://www.java.com/en/download/manual.jsp
+#' write one script that produces one dataframe 
 
 #' load the libraries
 library(RNetLogo)
@@ -218,7 +219,7 @@ tail(mydata)
 
 
 #######' run the model multiple times on the same core ----
-#' this samples the model once every 3650 days ~ 10 years
+#' this samples the model once every 520 weeks ~ 10 years
 #' the function for the model 
 simfun <- function(carryingCapacity) {
   NLCommand("set carryingCapacity ", carryingCapacity, "setup")
@@ -230,7 +231,7 @@ simfun <- function(carryingCapacity) {
   run <-
     NLDoReport(
       10,
-      "repeat 3650 [go]",
+      "repeat 520 [go]",
       c("ticks", reporters),
       as.data.frame = T,
       df.col.names = c("ticks", reporters)
@@ -244,7 +245,7 @@ rep.sim <- function(carryingCapacity, rep) {
 
 #' will take about 10 minutes !
 K <- c(300) #' carrying capacity 
-res <- rep.sim(K, 5)  #' replicate sim 5 times for each K
+res <- rep.sim(K, 3)  #' replicate sim 5 times for each K
 
 #' pull out the data for each run from the list columns 
 res1<-res[[1]][,1]
@@ -252,6 +253,8 @@ res2<-res[[1]][,2]
 res3<-res[[1]][,3]
 res4<-res[[1]][,4]
 res5<-res[[1]][,5]
+
+test<-select()
 
 #' transform each run into a dataframe 
 mydata1 <-
@@ -422,9 +425,43 @@ mydata %>% filter(sex == "female") %>% group_by(iteration, source) %>% summarise
   geom_line() + ggtitle("starting pop 100: females")
 
 #' clean the code more efficiently 
-test<-data.frame(res)
+#' can convert the whole list into a data frame 
+#' where each column is an iteration of the model
+test <- as.data.frame(res)
+
+#' combine the data frames 
+test_bind <- bind_rows(test$X1,test$X2,test$X3, .id = "id")
+
+test_bind <-  data.frame(cbind(
+    unlist(test_bind$`map [x -> [sex] of x ] sort turtles`),
+    unlist(test_bind$`map [x -> [g] of x ] sort turtles`),
+    unlist(test_bind$`map [x -> [ticks] of x ] sort turtles`),
+    unlist(test_bind$`map [x -> [who] of x ] sort turtles`)
+  ))
+
+names(test_bind)
+
+#' rename the variables
+test_bind <-
+  rename(
+    test_bind,
+    sex = X1,
+    g = X2,
+    iteration = X3,
+    who = X4
+  )
+
+head(test_bind)
+
+str(test, list.len = 2)
 
 
+example <- bind_rows(test, .id = "column_label")
+
+
+test_bind <- select(test_bind, id, iteration, g, sex, who)
+test_bind$g <- as.numeric(test_bind$g)
+mean(test_bind$g)
 ##### NetLogo Parallelization  ----
 
 #' Simple example
@@ -542,8 +579,7 @@ burned.df <-
              pctburned = unlist(result.par))
 
 library(ggplot2)
-ggplot(burned.df, aes(x = factor(density), y = pctburned)) + geom_boxplot(alpha =
-                                                                            .1) + geom_point()
+ggplot(burned.df, aes(x = factor(density), y = pctburned)) + geom_boxplot(alpha = .1) + geom_point()
 
 #' can quit out of NetLogo with NLQuit()
 #' note that you cannot reopen NetLogo once you do this
@@ -676,4 +712,39 @@ WMt <- t(WM)
 #' multiply genotype matrix by transpose of weights matrix
 #' this produces the genetic value
 GM %*% WMt
+
+#' extract data more neatly
+NLCommand("setup")
+
+reporters <- c("[who] of turtles", "[g] of turtles" , "[sex] of turtles", "[gm_val] of turtles")
+model_run <- NLDoReport(
+  10,
+  "repeat 100 [go]",
+  reporter = c("ticks", reporters),
+  as.data.frame = TRUE,
+  df.col.names = c("tick", reporters)
+)
+
+mydata <-
+  data.frame(cbind(
+    unlist(model_run$`[who] of turtles`),
+    unlist(model_run$`[g] of turtles`),
+    unlist(model_run$`[sex] of turtles`)
+  ))
+
+
+
+c(NLReport(c("ticks",
+             nrow(
+               unique(NLGetAgentSet("who", "g", "gm_val", "sex"))
+             ))))
+
+model_run <- NLDoReport(
+  10,
+  "repeat 100 [go]",
+  reporter = (c("ticks",
+               NLGetAgentSet("who", "g", "gm_val", "sex"),"turtles")
+                ))
+
+test<-do.call(rbind.data.frame, res)
 

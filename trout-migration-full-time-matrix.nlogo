@@ -15,6 +15,7 @@ globals
   WM ; weight matrix for females
   WMc ; weight matrix for males
 
+  strategy difference
 ] ;; added start-time and current-time
 
 
@@ -615,7 +616,7 @@ mortalityM
 mortalityM
 0
 .004
-0.0016
+3.0E-4
 .00001
 1
 NIL
@@ -627,7 +628,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-1.0
+0.0
 1
 0
 Number
@@ -652,7 +653,7 @@ mortalityF
 mortalityF
 0
 0.004
-0.00203
+3.0E-4
 .00001
 1
 NIL
@@ -664,7 +665,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-1.0
+0.0
 1
 0
 Number
@@ -700,10 +701,10 @@ true
 true
 "" ""
 PENS
-"anad males" 1.0 0 -1184463 true "" "plot count turtles with [sex = \"male\" and anadromous = true] / count turtles\n"
-"res males" 1.0 0 -13345367 true "" "plot count turtles with [sex = \"male\" and anadromous = false] / count turtles"
-"anad fem" 1.0 0 -2674135 true "" "plot count turtles with [sex = \"female\" and anadromous = true] / count turtles\n"
-"res fem" 1.0 0 -10899396 true "" "plot count turtles with [sex = \"female\" and anadromous = false] / count turtles"
+"anad males" 1.0 0 -1184463 true "" "plot count turtles with [sex = \"male\" and anadromous = true] / count turtles with [sex = \"male\"]\n"
+"res males" 1.0 0 -13345367 true "" "plot count turtles with [sex = \"male\" and anadromous = false] / count turtles  with [sex = \"male\"]"
+"anad fem" 1.0 0 -2674135 true "" "plot count turtles with [sex = \"female\" and anadromous = true] / count turtles  with [sex = \"female\"]\n"
+"res fem" 1.0 0 -10899396 true "" "plot count turtles with [sex = \"female\" and anadromous = false] / count turtles  with [sex = \"female\"]"
 
 SLIDER
 7
@@ -795,7 +796,7 @@ INPUTBOX
 158
 664
 parasite-load
-1.0
+0.0
 1
 0
 Number
@@ -1041,7 +1042,7 @@ INPUTBOX
 1396
 543
 res_quality_sd
-10.0
+0.0
 1
 0
 Number
@@ -1063,7 +1064,7 @@ INPUTBOX
 1398
 666
 anad_quality_sd
-10.0
+0.0
 1
 0
 Number
@@ -1074,7 +1075,7 @@ INPUTBOX
 1237
 604
 paras_quality_mean
-100.0
+150.0
 1
 0
 Number
@@ -1085,7 +1086,7 @@ INPUTBOX
 1395
 605
 paras_quality_sd
-10.0
+0.0
 1
 0
 Number
@@ -1197,6 +1198,17 @@ MONITOR
 max sea age
 max [sea-time] of turtles with [pcolor = blue]
 17
+1
+11
+
+MONITOR
+895
+444
+963
+489
+Prop anad
+count turtles with [anadromous = true] / count turtles
+2
 1
 11
 
