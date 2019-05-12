@@ -1,0 +1,30 @@
+## Create code and source directories:
+mkdir code
+mkdir src
+## Enter source directory
+cd src/
+## Download time:
+wget https://github.com/colinsheppard/time/archive/v1.4.1.tar.gz
+tar -zxvf v1.4.1.tar.gz
+## Rename
+mv time-1.4.1/ time
+## Download archived version of netlogo-5.0.5 - the version designed for time to be used with:
+wget https://ccl.northwestern.edu/netlogo/5.0.5/netlogo-5.0.5.tar.gz
+tar -zxvf netlogo-5.0.5.tar.gz 
+## Move time directory to extensions folder:
+mv time/ netlogo-5.0.5/extensions/
+mkdir bin
+cd bin/
+ln -s ~/src/NetLogo_6.0.4/app/netlogo-6.0.4.jar .
+mkdir input
+cp -p ../code/trout-migration/trout-migration-full-time-matrix.nlogo .
+mkdir results
+
+## For running the script of interest - 100 iterations:
+for number in {1..100};
+do
+Rscript script_test.R results/trout_output_reiteration_number_"$number".txt;
+done
+
+## Combine output files:
+cat results/trout_output_rei*txt >> results/combined_iterations.txt
