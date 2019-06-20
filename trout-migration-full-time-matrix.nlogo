@@ -63,7 +63,6 @@ fatherID
  start_quality
 
 ; females
-  fitness
   mate-count
   G-standardised
   time-since-repro
@@ -211,7 +210,8 @@ to set-migratory-behaviour
   let col2 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 1]]
   let sum-G-matrix col1 matrix:+ col2
   let GM_WMT  matrix:times sum-G-matrix WMT
-  set G matrix:get GM_WMT 0 0
+  ifelse evolution?
+  [set G matrix:get GM_WMT 0 0][set G 10]
 
   ; set Va 2.94706
    set Ve 2.94706
@@ -435,7 +435,7 @@ to reproduce
 
           set-migratory-behaviour
       ]
-      set fitness fecundity + fecundity
+
   ]
 
 end
@@ -732,7 +732,7 @@ carryingCapacity
 carryingCapacity
 0
 100000
-300.0
+500.0
 1
 1
 NIL
@@ -1232,6 +1232,17 @@ sneaker_radius
 1
 NIL
 HORIZONTAL
+
+SWITCH
+247
+454
+359
+487
+evolution?
+evolution?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
