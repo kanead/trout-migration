@@ -211,7 +211,7 @@ to set-migratory-behaviour
   let sum-G-matrix col1 matrix:+ col2
   let GM_WMT  matrix:times sum-G-matrix WMT
   ifelse evolution?
-  [set G matrix:get GM_WMT 0 0][set G 10]
+  [set G matrix:get GM_WMT 0 0][ifelse sex = "female" [set G 10] [set G 10]]
 
   ; set Va 2.94706
    set Ve 2.94706
