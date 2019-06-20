@@ -16,6 +16,14 @@ globals
   WMc ; weight matrix for males
 
   strategy difference
+
+  Ve
+  mu_cond
+  V_cond
+
+  L
+  k
+  mass0
 ] ;; added start-time and current-time
 
 
@@ -35,9 +43,7 @@ turtles-own
   G
   Vp
   Va
-  Ve
-  mu_cond
-  V_cond
+
   cond
   e_thresh
   z_thresh
@@ -50,14 +56,14 @@ turtles-own
   age
   sex
 
-  L
-  k
-  mass0
+motherID
+fatherID
 
 ; males
  start_quality
 
 ; females
+  fitness
   mate-count
   G-standardised
   time-since-repro
@@ -207,9 +213,9 @@ to set-migratory-behaviour
   let GM_WMT  matrix:times sum-G-matrix WMT
   set G matrix:get GM_WMT 0 0
 
-   set Va 2.94706
+  ; set Va 2.94706
    set Ve 2.94706
-   set Vp 5.89412
+  ; set Vp 5.89412
 
    set e_thresh random-normal 0 (sqrt(Ve))
    set z_thresh G + e_thresh
@@ -250,9 +256,9 @@ to go
    [
      set age (1 + age)  ;increment-age
      if sex = "female" [ set time-since-repro time-since-repro + 1 ]
-     if habitat = "fresh" [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
+     if habitat = "fresh" and my-week = 47 [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
     ; if anadromous and age > 365 [migrate]
-      if anadromous and age > 52 [migrate]
+      if anadromous and age > 52 [migrate-to-ocean migrate-to-freshwater]
    ]
 
 
@@ -326,7 +332,7 @@ end
 ; the resident gets a boost to its quality, the sneaker_boost
 
 to sneaker
-  let availa-rivals turtles with [sex = "male"] in-radius 5
+  let availa-rivals turtles with [sex = "male" and age > 52] in-radius sneaker_radius
   let rivals availa-rivals with [anadromous = true]
   let prop_rivals count availa-rivals with [anadromous = true] / count availa-rivals
   ifelse prop_rivals > sneaker_thresh ; 0.8
@@ -346,7 +352,7 @@ end
 ; or 82 weeks 6 days
 ; or 580 calendar days
 
-to migrate
+to migrate-to-ocean
 ;  if my-month = 4 and my-day = 1 and habitat = "fresh"
   if my-week = 14 and habitat = "fresh"
    [
@@ -356,10 +362,12 @@ to migrate
     if parasites? = "yes"
     [
      set state "parasitised"
-     set quality random-normal paras_quality_mean paras_quality_sd ; 150 10
+     set quality paras_quality;random-normal paras_quality_mean paras_quality_sd ; 150 10
     ]
    ]
+end
 
+to migrate-to-freshwater
   if habitat = "marine" [set sea-time sea-time + 1]
 ;  if my-month = 11 and my-day = 1 and sea-time > 500
   if my-week = 44 and sea-time > 80
@@ -399,7 +407,10 @@ to reproduce
         hatch round fecundity
         [
           set mother myself
+          set motherID [who] of mother
+
           set father one-of [mates] of mother
+          set fatherID [who] of father
 
           let motherGM [GM] of mother
           let motherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column motherGM random 2]]
@@ -410,6 +421,7 @@ to reproduce
           matrix:set-column GM 1 matrix:get-row fatherLocus 0
 
           set state "healthy"
+          set age 0
           set mates (turtle-set)
           ifelse random 2 = 1
            [
@@ -423,15 +435,20 @@ to reproduce
 
           set-migratory-behaviour
       ]
+      set fitness fecundity + fecundity
   ]
 
 end
 
 ;; kill turtles in excess of carrying capacity
 to grim-reaper
-  let num-turtles count turtles with [habitat = "fresh"]
-  let chance-to-die (num-turtles - carryingCapacity) / num-turtles
-  if random-float 1.0 < chance-to-die [ die ]
+      if count turtles > carryingCapacity [
+    let max-age max [age] of turtles
+ ask rnd:weighted-n-of 1 turtles [max-age - age ] [ die ]
+  ]
+;  let num-turtles count turtles with [habitat = "fresh"]
+;  let chance-to-die (num-turtles - carryingCapacity) / num-turtles
+;  if random-float 1.0 < chance-to-die [ die ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -526,7 +543,7 @@ n-trout
 n-trout
 0
 5000
-345.0
+20.0
 1
 1
 NIL
@@ -616,7 +633,7 @@ mortalityM
 mortalityM
 0
 .004
-3.0E-4
+1.1E-4
 .00001
 1
 NIL
@@ -628,7 +645,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-0.0
+1.0
 1
 0
 Number
@@ -653,7 +670,7 @@ mortalityF
 mortalityF
 0
 0.004
-3.0E-4
+1.1E-4
 .00001
 1
 NIL
@@ -665,7 +682,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-0.0
+1.0
 1
 0
 Number
@@ -679,7 +696,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-4.0
+5.0
 1
 1
 NIL
@@ -730,7 +747,7 @@ prop-parasites
 prop-parasites
 0.00
 1
-0.25
+0.05
 0.01
 1
 NIL
@@ -1074,19 +1091,8 @@ INPUTBOX
 544
 1237
 604
-paras_quality_mean
-150.0
-1
-0
-Number
-
-INPUTBOX
-1240
-545
-1395
-605
-paras_quality_sd
-0.0
+paras_quality
+50.0
 1
 0
 Number
@@ -1211,6 +1217,21 @@ count turtles with [anadromous = true] / count turtles
 2
 1
 11
+
+SLIDER
+246
+603
+361
+636
+sneaker_radius
+sneaker_radius
+0
+5
+5.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
