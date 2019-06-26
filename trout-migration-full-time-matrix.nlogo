@@ -188,7 +188,7 @@ to set-population
     set size 2         ; represents size of the fish on screen, purely aesthetic
     set sea-time 0
     set FecAcc 0
-
+    set time-since-repro 52 ; females have to start with this otherwise they never reproduce
     set GM matrix:from-row-list n-values 21 [n-values 2 [i -> random 2]]
     set-migratory-behaviour
   ]
@@ -276,7 +276,7 @@ to go
 ;     if habitat = "fresh" and my-week = 47 [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
 ;     if anadromous and age > 365 [migrate]
    ]
-  ask turtles with [anadromous = True and age > 52]
+  ask turtles with [anadromous = true and age > 52]
    [
       if my-week = 14 and habitat = "fresh" [migrate-to-ocean]
       if my-week = 44 and sea-time > 80 [migrate-to-freshwater]
@@ -671,7 +671,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-1.0
+2.0
 1
 0
 Number
@@ -708,7 +708,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-1.0
+2.0
 1
 0
 Number
@@ -1085,7 +1085,7 @@ INPUTBOX
 1396
 543
 res_quality_sd
-0.0
+10.0
 1
 0
 Number
@@ -1107,7 +1107,7 @@ INPUTBOX
 1398
 666
 anad_quality_sd
-0.0
+10.0
 1
 0
 Number
@@ -1118,7 +1118,7 @@ INPUTBOX
 1237
 604
 paras_quality
-50.0
+150.0
 1
 0
 Number
@@ -1199,7 +1199,7 @@ CHOOSER
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-5
+0
 
 MONITOR
 9
