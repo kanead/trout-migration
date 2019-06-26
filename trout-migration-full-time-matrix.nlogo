@@ -14,35 +14,44 @@ globals
 
   WM ; weight matrix for females
   WMc ; weight matrix for males
+  Gpm ; mean genotypic value of the male population
+  Gpf ; mean genotypic value of the male population
 
   strategy difference
 
   Ve
+  Va
+  Vp
   mu_cond
   V_cond
 
   L
   k
   mass0
+
+;  sneaker_radius
+;  sneaker_threshold
+
+
 ] ;; added start-time and current-time
 
 
 turtles-own
 [
   mates
-  prob-death
+;  prob-death ;;not needed anymore
   sea-time
   state
   habitat
 
 
-  WMT
+;  WMT ;;not needed anymore
   GM
   GM_val
 
   G
-  Vp
-  Va
+;  Vp
+;  Va
 
   cond
   e_thresh
@@ -56,16 +65,17 @@ turtles-own
   age
   sex
 
-motherID
-fatherID
+  motherID
+  fatherID
 
 ; males
- start_quality
+  start_quality
 
 ; females
   mate-count
   G-standardised
   time-since-repro
+  FecAcc ; accumulated fecundity (number of offspring produced so far)
 ]
 
 patches-own [parasites?]
@@ -113,8 +123,8 @@ end
 
 to set-parameters
 
-
-  set WM matrix:from-row-list
+;set WM matrix:from-row-list
+set WM matrix:from-column-list
   [
     [
       0.9280339
@@ -141,10 +151,23 @@ to set-parameters
     ]
   ]
 
+;set WMc matrix-row-manipulation WM 0 0 n-loci-sign -1
+set WMc matrix:transpose (matrix-row-manipulation matrix:transpose WM 0 0 n-loci-sign -1)
 
+set Gpm reduce + matrix:get-column WMc 0
+set Gpf reduce + matrix:get-column WM 0
 
-set WMc matrix-row-manipulation WM 0 0 n-loci-sign -1
+; set Va 2.94706
+set Ve 2.94706
+; set Vp 5.89412
 
+set mu_cond  10       ; mean value of the condition trait
+set V_cond  2.94706   ; variance of the condition trait (in this case, all the phenotypic variance is environmental)
+
+; these values determine the fecundity of the female fish as a function of her quality - they feed into a logistic function
+set L  10
+set k  0.04
+set mass0  150
 
 end
 
@@ -158,18 +181,13 @@ to set-population
       [set sex "male" set color red]
       [set sex "female" set color grey]
 
+
     set habitat "fresh" ; all fish start off in freshwater
     set state "healthy" ; all fish start off without parasites
     set mates (turtle-set)
     set size 2         ; represents size of the fish on screen, purely aesthetic
     set sea-time 0
-    set mu_cond  10     ; mean value of the condition trait
-    set V_cond  2.94706      ; variance of the condition trait (in this case, all the phenotypic variance is environmental)
-
-    ; these values determine the fecundity of the female fish as a function of her quality - they feed into a logistic function
-    set L  10
-    set k  0.04
-    set mass0  150
+    set FecAcc 0
 
     set GM matrix:from-row-list n-values 21 [n-values 2 [i -> random 2]]
     set-migratory-behaviour
@@ -205,17 +223,14 @@ end
 
 to set-migratory-behaviour
 
-  ifelse sex = "female" [set WMT matrix:transpose WM] [set WMT matrix:transpose WMc]
+;  ifelse sex = "female" [set WMT matrix:transpose WM] [set WMT matrix:transpose WMc]
   let col1 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 0]]
   let col2 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 1]]
   let sum-G-matrix col1 matrix:+ col2
-  let GM_WMT  matrix:times sum-G-matrix WMT
+;  let GM_WMT  matrix:times sum-G-matrix WMT
+  let GM_WMT  matrix:times sum-G-matrix WM
   ifelse evolution?
-  [set G matrix:get GM_WMT 0 0][ifelse sex = "female" [set G 10] [set G 10]]
-
-  ; set Va 2.94706
-   set Ve 2.94706
-  ; set Vp 5.89412
+  [set G matrix:get GM_WMT 0 0][ifelse sex = "female" [set G Gpf] [set G Gpm]]
 
    set e_thresh random-normal 0 (sqrt(Ve))
    set z_thresh G + e_thresh
@@ -225,7 +240,6 @@ to set-migratory-behaviour
      [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
 
    if sex = "male" and anadromous =  false [set start_quality quality]
-   set habitat "fresh"
 
    let preGM_val matrix:pretty-print-text GM
    set GM_val read-from-string preGM_val
@@ -237,6 +251,7 @@ end
 to go
   tick ; iterate the model
 
+;0. Update time counters:
 ;  if ticks mod 364 = 0 [set year year + 1] ; iterate the year
   if ticks mod 52 = 0 [set year year + 1] ; iterate the year
  ; if year = 300 [stop] ; tell the model to stop at year 300
@@ -245,20 +260,27 @@ to go
   set my-day  time:get "day" current-time ; extract the day so fish can keep track of their schedule
 
 ;1. Mortality actions:
-;  if count turtles with [habitat = "fresh"] > carrying-capacity ; SHOULD THIS ONLY REFLECT THE COUNT OF FISH IN FRESHWATER?
-  while [count turtles with [habitat = "fresh"] > carryingCapacity]
-    [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
+  if count turtles with [habitat = "fresh"] > carryingCapacity [grim-reaper]
+;  while [count turtles with [habitat = "fresh"] > carryingCapacity]
+;    [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
 
   mortality
 
-;2. Age, move and migrate:
+;2. Age and migrate:
   ask turtles
    [
      set age (1 + age)  ;increment-age
-     if sex = "female" [ set time-since-repro time-since-repro + 1 ]
-     if habitat = "fresh" and my-week = 47 [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
-    ; if anadromous and age > 365 [migrate]
-      if anadromous and age > 52 [migrate-to-ocean migrate-to-freshwater]
+;     if sex = "female" [ set time-since-repro time-since-repro + 1 ]
+     if sex = "female" and FecAcc > 0 [ set time-since-repro time-since-repro + 1 ] ;;Only females that have already reproduced should update this
+     if habitat = "marine" [set sea-time sea-time + 1]
+;     if habitat = "fresh" and my-week = 47 [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
+;     if anadromous and age > 365 [migrate]
+   ]
+  ask turtles with [anadromous = True and age > 52]
+   [
+      if my-week = 14 and habitat = "fresh" [migrate-to-ocean]
+      if my-week = 44 and sea-time > 80 [migrate-to-freshwater]
+;      if anadromous and age > 52 [migrate-to-ocean migrate-to-freshwater]
    ]
 
 
@@ -267,10 +289,10 @@ to go
   ; reproduction starts on 1st December and ends on 4th December
   ; only females who are adults, i.e. over a year old, are subject to the reproduction procedures
   ; of choosing mates and reproducing
- ; if my-month = 12 and my-day < 5 and year > 1
   if my-week = 48 and year > 1
   [ ;repeat 4 [
  ;   let spawners turtles with [age > 365 and habitat = "fresh"]
+    ask turtles with [habitat = "fresh"] [ move-to one-of patches with [pcolor = cyan]] ; fish in the fresh water disperse before reproduction
     let spawners turtles with [age > 52 and habitat = "fresh"]
     let sneakers spawners with [sex = "male" and anadromous = false]
     ask sneakers [sneaker] ;; the sneaker tactic can be turned on or off on the gui; it only applies to adult resident males
@@ -299,30 +321,33 @@ end
 to mortality
   ask turtles with [sex = "male"]
    [
-      ifelse habitat = "fresh"
+    let prob-deathM mortalityM
+    ifelse habitat = "fresh"
      [
-      set prob-death mortalityM ; chance of dying on any turn in freshwater
-      if random-float 1 < prob-death [die]
+;      set prob-death mortalityM ; chance of dying on any turn in freshwater
+      if random-float 1 < prob-deathM [die]
      ] ; death procedure
      [
        ifelse state = "healthy"
-        [ set prob-death mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
-        [ set prob-death mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
+        [ set prob-deathM mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
+        [ set prob-deathM mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
      ]
-    if random-float 1 < prob-death [die] ; death procedure
+      if random-float 1 < prob-deathM [die] ; death procedure
    ]
 
   ask turtles with [sex = "female"]
     [
+      let prob-deathF mortalityF
       ifelse habitat = "fresh"
-      [set prob-death mortalityF ; chance of dying on any turn in freshwater
-        if random-float 1 < prob-death [die] ] ; death procedure
+      [
+;        set prob-death mortalityF ; chance of dying on any turn in freshwater
+        if random-float 1 < prob-deathF [die] ] ; death procedure
       [
        ifelse state = "healthy"
-        [ set prob-death mortalityF * anad-death-multiplierF ]  ; higher likelihood of death while at sea
-        [ set prob-death mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
+        [ set prob-deathF mortalityF * anad-death-multiplierF ]  ; higher likelihood of death while at sea
+        [ set prob-deathF mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
       ]
-     if random-float 1 < prob-death [die] ; death procedure
+      if random-float 1 < prob-deathF [die] ; death procedure
     ]
 
 end
@@ -334,7 +359,7 @@ end
 to sneaker
   let availa-rivals turtles with [sex = "male" and age > 52] in-radius sneaker_radius
   let rivals availa-rivals with [anadromous = true]
-  let prop_rivals count availa-rivals with [anadromous = true] / count availa-rivals
+  let prop_rivals count rivals / count availa-rivals
   ifelse prop_rivals > sneaker_thresh ; 0.8
    [set quality start_quality + sneaker_boost  ] ; 200
    [set quality start_quality]
@@ -353,9 +378,8 @@ end
 ; or 580 calendar days
 
 to migrate-to-ocean
-;  if my-month = 4 and my-day = 1 and habitat = "fresh"
-  if my-week = 14 and habitat = "fresh"
-   [
+;  if my-week = 14 and habitat = "fresh"
+;   [
     move-to one-of patches with [pcolor = blue]
     set habitat "marine"
 
@@ -364,18 +388,18 @@ to migrate-to-ocean
      set state "parasitised"
      set quality paras_quality;random-normal paras_quality_mean paras_quality_sd ; 150 10
     ]
-   ]
+;   ]
 end
 
 to migrate-to-freshwater
-  if habitat = "marine" [set sea-time sea-time + 1]
+;  if habitat = "marine" [set sea-time sea-time + 1]
 ;  if my-month = 11 and my-day = 1 and sea-time > 500
-  if my-week = 44 and sea-time > 80
-   [
+;  if my-week = 44 and sea-time > 80
+;   [
     move-to one-of patches with [pcolor = cyan]
     set habitat "fresh"
     set sea-time 0
-   ]
+;   ]
 
 end
 
@@ -404,6 +428,7 @@ to reproduce
    [
         set time-since-repro 0
         let fecundity   L / (1 + exp(- k * (quality - mass0)))
+        set FecAcc FecAcc + fecundity
         hatch round fecundity
         [
           set mother myself
@@ -420,6 +445,7 @@ to reproduce
           matrix:set-column GM 0 matrix:get-row motherLocus 0
           matrix:set-column GM 1 matrix:get-row fatherLocus 0
 
+          set habitat "fresh"
           set state "healthy"
           set age 0
           set mates (turtle-set)
@@ -435,17 +461,17 @@ to reproduce
 
           set-migratory-behaviour
       ]
-
   ]
-
 end
 
 ;; kill turtles in excess of carrying capacity
 to grim-reaper
-      if count turtles > carryingCapacity [
-    let max-age max [age] of turtles
- ask rnd:weighted-n-of 1 turtles [max-age - age ] [ die ]
-  ]
+;      if count turtles > carryingCapacity [ ;;that's already being asked in the go procedure
+ let freshwaters turtles with [habitat = "fresh"]
+ let max-age max [age] of freshwaters
+ ask rnd:weighted-n-of (count freshwaters - carryingCapacity) freshwaters [max-age - age ] [ die ]
+;  ]
+
 ;  let num-turtles count turtles with [habitat = "fresh"]
 ;  let chance-to-die (num-turtles - carryingCapacity) / num-turtles
 ;  if random-float 1.0 < chance-to-die [ die ]
@@ -543,7 +569,7 @@ n-trout
 n-trout
 0
 5000
-20.0
+2026.0
 1
 1
 NIL
@@ -1098,10 +1124,10 @@ paras_quality
 Number
 
 SWITCH
-252
-493
-357
-526
+248
+490
+353
+523
 sneaker?
 sneaker?
 1
@@ -1138,7 +1164,7 @@ NIL
 SLIDER
 247
 528
-366
+368
 561
 sneaker_thresh
 sneaker_thresh
@@ -1151,9 +1177,9 @@ NIL
 HORIZONTAL
 
 SLIDER
-245
+247
 564
-367
+369
 597
 sneaker_boost
 sneaker_boost
@@ -1173,7 +1199,7 @@ CHOOSER
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-0
+5
 
 MONITOR
 9
@@ -1219,9 +1245,9 @@ count turtles with [anadromous = true] / count turtles
 11
 
 SLIDER
-246
+247
 603
-361
+370
 636
 sneaker_radius
 sneaker_radius
@@ -1234,10 +1260,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-247
-454
-359
-487
+476
+441
+588
+474
 evolution?
 evolution?
 0
