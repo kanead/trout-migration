@@ -7,23 +7,8 @@
 #' write one script that produces one dataframe 
 
 ## Load libraries:
-if(length(.libPaths()) == 1){
-  # We're in Rscript.exe
-  possible_lib_paths <- file.path(Sys.getenv(c('USERPROFILE','R_USER')),
-                                  "R","win-library",
-                                  paste(R.version$major,
-                                        substr(R.version$minor,1,1),
-                                        sep='.'))
-  indx <- which(file.exists(possible_lib_paths))
-  if(length(indx)){
-    .libPaths(possible_lib_paths[indx[1]])
-  }
-  # CLEAN UP
-  rm(indx,possible_lib_paths)
-}
-
 library(RNetLogo)
-
+library(dplyr)
 ## Provide access to a copy of the command line arguments supplied when R session is invoked
 args <- commandArgs(TRUE)
 output_file <- args[1]            # Assign first argument as output
@@ -157,8 +142,9 @@ head(mydata)
 mydata$g <- as.numeric(as.character(mydata$g))
 head(mydata)
 
+#' I had to make the folder in the wd_path
 output <- paste(wd_path,
-                "/results/",
+                "/",
                 output_file,
                 sep = "")
 

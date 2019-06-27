@@ -13,3 +13,14 @@ amr <- 0.1
 1 - (1 - amr) ^ (1 / 365)
 #' or
 1 - exp(1 / 365 * log (1 - amr))
+
+#' what is the weekly mortality rate
+#' where i is the instantaneous mortality rate per year
+#' https://math.stackexchange.com/questions/3259714/how-to-convert-an-instantaneous-mortality-rate-to-a-weekly-mortality-rate
+x = 0.1
+(1 + x)^(1/365) - 1
+
+x = 0.58
+1 - (1 - x) ^ (1 / 52)
+
+

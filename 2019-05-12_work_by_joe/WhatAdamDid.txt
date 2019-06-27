@@ -1,0 +1,42 @@
+## Create code and source directories:
+mkdir code
+mkdir src
+## Enter source directory
+cd src/
+## Download time:
+wget https://github.com/colinsheppard/time/archive/v1.4.1.tar.gz
+tar -zxvf v1.4.1.tar.gz
+## Rename
+mv time-1.4.1/ time
+## Download archived version of netlogo-5.0.5 - the version designed for time to be used with:
+wget https://ccl.northwestern.edu/netlogo/5.0.5/netlogo-5.0.5.tar.gz
+tar -zxvf netlogo-5.0.5.tar.gz 
+## Move time directory to extensions folder:
+mv time/ netlogo-5.0.5/extensions/
+mkdir bin
+cd bin/
+ln -s ~/src/NetLogo_6.0.4/app/netlogo-6.0.4.jar .
+mkdir input
+cp C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\trout-migration-full-time-matrix.nlogo .
+
+## For running the script of interest - 100 iterations:
+for number in {1..100}; 
+do Rscript C:\\Users\\Adam\\Documents\\Science\\Manuscripts\\trout-migration\\2019-05-12_work_by_joe\\script_test_adam.R results/trout_output_reiteration_number_"$number".txt; 
+done
+
+
+# this was added to the R script 
+if(length(.libPaths()) == 1){
+  # We're in Rscript.exe
+  possible_lib_paths <- file.path(Sys.getenv(c('USERPROFILE','R_USER')),
+                                  "R","win-library",
+                                  paste(R.version$major,
+                                        substr(R.version$minor,1,1),
+                                        sep='.'))
+  indx <- which(file.exists(possible_lib_paths))
+  if(length(indx)){
+    .libPaths(possible_lib_paths[indx[1]])
+  }
+  # CLEAN UP
+  rm(indx,possible_lib_paths)
+}
