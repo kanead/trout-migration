@@ -74,7 +74,7 @@ turtles-own
 ; females
   mate-count
   G-standardised
-  ;time-since-repro
+  time-since-repro
   FecAcc ; accumulated fecundity (number of offspring produced so far)
 ]
 
