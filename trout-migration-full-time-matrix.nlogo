@@ -392,12 +392,15 @@ to migrate-to-ocean
 end
 
 to migrate-to-freshwater
+  ; parasitised fish become healthy again when they return to freshwater
+  ; this means their quality remains lower but they don't have the increased mortality cost once they return
 ;  if habitat = "marine" [set sea-time sea-time + 1]
 ;  if my-month = 11 and my-day = 1 and sea-time > 500
 ;  if my-week = 44 and sea-time > 80
 ;   [
     move-to one-of patches with [pcolor = cyan]
     set habitat "fresh"
+    set state "healthy"
     set sea-time 0
 ;   ]
 
@@ -428,7 +431,7 @@ to reproduce
    [
         set time-since-repro 0
         let fecundity   L / (1 + exp(- k * (quality - mass0)))
-        set FecAcc FecAcc + fecundity
+        set FecAcc FecAcc + round fecundity ; added round here to keep the values as integers
         hatch round fecundity
         [
           set mother myself
@@ -569,7 +572,7 @@ n-trout
 n-trout
 0
 5000
-2026.0
+80.0
 1
 1
 NIL
@@ -722,7 +725,7 @@ female-mate-radius
 female-mate-radius
 0
 100
-5.0
+6.0
 1
 1
 NIL
