@@ -25,9 +25,11 @@ globals
   mu_cond
   V_cond
 
-  L
-  k
-  mass0
+  a
+  b
+ ; L
+ ; k
+ ; mass0
 
 ;  sneaker_radius
 ;  sneaker_threshold
@@ -164,10 +166,11 @@ set Ve 2.94706
 set mu_cond  10       ; mean value of the condition trait
 set V_cond  2.94706   ; variance of the condition trait (in this case, all the phenotypic variance is environmental)
 
-; these values determine the fecundity of the female fish as a function of her quality - they feed into a logistic function
-set L  10
-set k  0.04
-set mass0  150
+; these values determine the fecundity of the female fish as a function of her quality - they feed into allometric equation
+; http://www.freshwaterlife.org/projects/media/projects/images/1/50094_ca_object_representations_media_163_original.pdf
+set a  0.000238781 ; log10(a) = -3.622
+set b  2.603
+;set mass0  150
 
 end
 
@@ -236,9 +239,9 @@ to set-migratory-behaviour
    set z_thresh G + e_thresh
    set cond random-normal mu_cond  sqrt(V_cond)
    ifelse(cond > z_thresh)
-     [set anadromous false  set quality random-normal res_quality_mean res_quality_sd] ; 100 10
-     [set anadromous true set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
-
+    [set anadromous false ] ;set quality random-normal res_quality_mean res_quality_sd] ; 100 10
+    [set anadromous true  ] ; set quality random-normal anad_quality_mean anad_quality_sd] ; 200 10
+   set quality random-normal res_quality_mean res_quality_sd
    if sex = "male" and anadromous =  false [set start_quality quality]
 
    let preGM_val matrix:pretty-print-text GM
@@ -270,6 +273,7 @@ to go
   ask turtles
    [
      set age (1 + age)  ;increment-age
+      if age = lifespan [die] ;260 = 52 * 5 ~ 5 years
 ;     if sex = "female" [ set time-since-repro time-since-repro + 1 ]
 ;     if sex = "female" and FecAcc > 0 [ set time-since-repro time-since-repro + 1 ] ;;Only females that have already reproduced should update this
      if habitat = "marine" [set sea-time sea-time + 1]
@@ -279,9 +283,11 @@ to go
   ask turtles with [anadromous = true and age > 52]
    [
       if my-week = 14 and habitat = "fresh" [migrate-to-ocean]
+      if my-week = 43 and habitat = "marine" and sea-time > 80 [check-quality]
       if my-week = 44 and sea-time > 80 [migrate-to-freshwater]
+  ]
 ;      if anadromous and age > 52 [migrate-to-ocean migrate-to-freshwater]
-   ]
+
 
 
 ;3. Reproduction actions:
@@ -386,7 +392,7 @@ to migrate-to-ocean
     if parasites? = "yes"
     [
      set state "parasitised"
-     set quality paras_quality;random-normal paras_quality_mean paras_quality_sd ; 150 10
+  ;   set quality paras_quality;random-normal paras_quality_mean paras_quality_sd ; 150 10
     ]
 ;   ]
 end
@@ -404,6 +410,10 @@ to migrate-to-freshwater
     set sea-time 0
 ;   ]
 
+end
+
+to check-quality
+  ifelse state = "parasitised" [ set quality quality - paras_quality] [set quality quality + anad_quality]
 end
 
 ; females choose up to 5 male mates from a pool of males in freshwater habitat over a certain age in their radius
@@ -430,7 +440,8 @@ to reproduce
   if count mates > 0
    [
        ; set time-since-repro 0
-        let fecundity   L / (1 + exp(- k * (quality - mass0)))
+       ; let fecundity   L / (1 + exp(- k * (quality - mass0)))
+        let fecundity ( a * quality ^ b ) / 50
         set FecAcc FecAcc + round fecundity ; added round here to keep the values as integers
         hatch round fecundity
         [
@@ -972,7 +983,7 @@ Quality of  males
 NIL
 NIL
 50.0
-250.0
+300.0
 0.0
 10.0
 true
@@ -1040,7 +1051,7 @@ Quality of females
 NIL
 NIL
 50.0
-250.0
+300.0
 0.0
 10.0
 true
@@ -1077,7 +1088,7 @@ INPUTBOX
 1235
 542
 res_quality_mean
-100.0
+200.0
 1
 0
 Number
@@ -1098,8 +1109,8 @@ INPUTBOX
 604
 1237
 664
-anad_quality_mean
-200.0
+anad_quality
+100.0
 1
 0
 Number
@@ -1110,7 +1121,7 @@ INPUTBOX
 1398
 666
 anad_quality_sd
-10.0
+0.0
 1
 0
 Number
@@ -1121,7 +1132,7 @@ INPUTBOX
 1237
 604
 paras_quality
-150.0
+10.0
 1
 0
 Number
@@ -1272,6 +1283,27 @@ evolution?
 0
 1
 -1000
+
+INPUTBOX
+677
+506
+832
+566
+lifespan
+416.0
+1
+0
+Number
+
+TEXTBOX
+842
+507
+992
+563
+260 = 5 years in weeks\n312 = 6 years in weeks\n364 = 7 years in weeks\n416 = 8 years in weeks\n
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
