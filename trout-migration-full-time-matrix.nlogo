@@ -27,12 +27,12 @@ globals
 
   a
   b
+  SurvRate
  ; L
  ; k
  ; mass0
 
-;  sneaker_radius
-;  sneaker_threshold
+
 
 
 ] ;; added start-time and current-time
@@ -45,7 +45,6 @@ turtles-own
   sea-time
   state
   habitat
-
 
 ;  WMT ;;not needed anymore
   GM
@@ -166,10 +165,12 @@ set Ve 2.94706
 set mu_cond  10       ; mean value of the condition trait
 set V_cond  2.94706   ; variance of the condition trait (in this case, all the phenotypic variance is environmental)
 
-; these values determine the fecundity of the female fish as a function of her quality - they feed into allometric equation
+; these values determine the fecundity of the female fish as a function of her quality - they feed into an allometric equation
 ; http://www.freshwaterlife.org/projects/media/projects/images/1/50094_ca_object_representations_media_163_original.pdf
+  ; N = a*L^b, where L is length in mm so we'd expect a 200mm fish to produce 0.000238781 * 200 ^ 2.603 =
 set a  0.000238781 ; log10(a) = -3.622
 set b  2.603
+set SurvRate 0.1
 ;set mass0  150
 
 end
@@ -257,12 +258,14 @@ to go
 ;0. Update time counters:
 ;  if ticks mod 364 = 0 [set year year + 1] ; iterate the year
   if ticks mod 52 = 0 [set year year + 1] ; iterate the year
- ; if year = 300 [stop] ; tell the model to stop at year 300
+ ; if year = 300 [stop] ; tell the model to stop at final simulation time
   set my-month  time:get "month" current-time ; extract the month so fish can keep track of their schedule
   set my-week  time:get "week" current-time ; extract the week so fish can keep track of their schedule
   set my-day  time:get "day" current-time ; extract the day so fish can keep track of their schedule
 
 ;1. Mortality actions:
+  ask turtles with [age = lifespan] [die]
+
   if count turtles with [habitat = "fresh"] > carryingCapacity [grim-reaper]
 ;  while [count turtles with [habitat = "fresh"] > carryingCapacity]
 ;    [ ask turtles with [habitat = "fresh"] [grim-reaper] ]
@@ -270,50 +273,41 @@ to go
   mortality
 
 ;2. Age and migrate:
-  ask turtles
+  ask turtles  ;; time counters are updated
    [
-     set age (1 + age)  ;increment-age
-      if age = lifespan [die] ;260 = 52 * 5 ~ 5 years
+     set age (1 + age)  ; increment-age
 ;     if sex = "female" [ set time-since-repro time-since-repro + 1 ]
-;     if sex = "female" and FecAcc > 0 [ set time-since-repro time-since-repro + 1 ] ;;Only females that have already reproduced should update this
-     if habitat = "marine" [set sea-time sea-time + 1]
-;     if habitat = "fresh" and my-week = 47 [ move-to one-of patches with [pcolor = cyan] ] ; resident fish move around their habitat
-;     if anadromous and age > 365 [migrate]
+     if habitat = "marine" [set sea-time sea-time + 1] ; increment time at sea
    ]
-  ask turtles with [anadromous = true and age > 52]
+  ask turtles with [anadromous = true and age > 52]  ;; trout migrate
    [
       if my-week = 14 and habitat = "fresh" [migrate-to-ocean]
-      if my-week = 43 and habitat = "marine" and sea-time > 80 [check-quality]
+;      if my-week = 43 and habitat = "marine" and sea-time > 80 [check-quality]
       if my-week = 44 and sea-time > 80 [migrate-to-freshwater]
   ]
-;      if anadromous and age > 52 [migrate-to-ocean migrate-to-freshwater]
-
 
 
 ;3. Reproduction actions:
 
-  ; reproduction starts on 1st December and ends on 4th December
+  ; reproduction starts on 1st December
   ; only females who are adults, i.e. over a year old, are subject to the reproduction procedures
   ; of choosing mates and reproducing
   if my-week = 48 and year > 1
-  [ ;repeat 4 [
+   [
  ;   let spawners turtles with [age > 365 and habitat = "fresh"]
-    ask turtles with [habitat = "fresh"] [ move-to one-of patches with [pcolor = cyan]] ; fish in the fresh water disperse before reproduction
+    ask turtles with [habitat = "fresh"] [ move-to one-of patches with [pcolor = cyan]] ;; fish in the fresh water disperse before reproduction
     let spawners turtles with [age > 52 and habitat = "fresh"]
     let sneakers spawners with [sex = "male" and anadromous = false]
     ask sneakers [sneaker] ;; the sneaker tactic can be turned on or off on the gui; it only applies to adult resident males
     ask spawners [set mates ( turtle-set )]
   ;  ask spawners with [sex = "female" and time-since-repro >= 365]
-    ask spawners with [sex = "female"]; and time-since-repro >= 52]
+    ask spawners with [sex = "female"]
      [
       choose-mates
       reproduce
      ]
-;    ask spawners with [sex = "female" and time-since-repro >= 365] [choose-mates]
-;    ask spawners with [sex = "female" and time-since-repro >= 365] [reproduce]
     ask sneakers [set quality start_quality]
-  ]
- ; ]
+   ]
 
 end
 
@@ -321,7 +315,19 @@ end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SUBMODELS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; mortality procedure,
+;; kill turtles in excess of carrying capacity
+to grim-reaper
+ let freshwaters turtles with [habitat = "fresh"]
+ let max-age max [age] of freshwaters
+ ask rnd:weighted-n-of (count freshwaters - carryingCapacity) freshwaters [max-age - age ] [ die ]
+
+;  let num-turtles count turtles with [habitat = "fresh"]
+;  let chance-to-die (num-turtles - carryingCapacity) / num-turtles
+;  if random-float 1.0 < chance-to-die [ die ]
+end
+
+
+; Mortality procedure,
 ; The chance of dying varies for males, females, by habitat and depending on whether you are parasitiised
 
 to mortality
@@ -330,14 +336,13 @@ to mortality
     let prob-deathM mortalityM
     ifelse habitat = "fresh"
      [
-;      set prob-death mortalityM ; chance of dying on any turn in freshwater
-      if random-float 1 < prob-deathM [die]
-     ] ; death procedure
+      if random-float 1 < prob-deathM [die] ; chance of dying on any turn in freshwater
+     ]
      [
-       ifelse state = "healthy"
+      ifelse state = "healthy"
         [ set prob-deathM mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
         [ set prob-deathM mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
-              if random-float 1 < prob-deathM [die] ; death procedure
+      if random-float 1 < prob-deathM [die] ; death procedure
      ]
    ]
 
@@ -346,13 +351,12 @@ to mortality
       let prob-deathF mortalityF
       ifelse habitat = "fresh"
       [
-;        set prob-death mortalityF ; chance of dying on any turn in freshwater
-        if random-float 1 < prob-deathF [die] ] ; death procedure
+       if random-float 1 < prob-deathF [die] ] ; chance of dying on any turn in freshwater
       [
        ifelse state = "healthy"
-        [ set prob-deathF mortalityF * anad-death-multiplierF ]  ; higher likelihood of death while at sea
+        [ set prob-deathF mortalityF * anad-death-multiplierF ]                  ; higher likelihood of death while at sea
         [ set prob-deathF mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
-              if random-float 1 < prob-deathF [die] ; death procedure
+       if random-float 1 < prob-deathF [die]
       ]
     ]
 
@@ -384,37 +388,30 @@ end
 ; or 580 calendar days
 
 to migrate-to-ocean
-;  if my-week = 14 and habitat = "fresh"
-;   [
-    move-to one-of patches with [pcolor = blue]
-    set habitat "marine"
-
-    if parasites? = "yes"
+   move-to one-of patches with [pcolor = blue]
+   set habitat "marine"
+   if parasites? = "yes"
     [
      set state "parasitised"
   ;   set quality paras_quality;random-normal paras_quality_mean paras_quality_sd ; 150 10
     ]
-;   ]
 end
 
 to migrate-to-freshwater
-  ; parasitised fish become healthy again when they return to freshwater
-  ; this means their quality remains lower but they don't have the increased mortality cost once they return
-;  if habitat = "marine" [set sea-time sea-time + 1]
-;  if my-month = 11 and my-day = 1 and sea-time > 500
-;  if my-week = 44 and sea-time > 80
-;   [
-    move-to one-of patches with [pcolor = cyan]
-    set habitat "fresh"
-    set state "healthy"
-    set sea-time 0
-;   ]
-
+  ;; fish update their quality after the time spent at sea, it depends on their state
+  ;; parasitised fish become healthy again when they return to freshwater
+  ;; this means their quality remains lower but they don't have the increased mortality cost once they return
+  ifelse state = "parasitised" [ set quality quality + anad_quality - paras_quality] [set quality quality + anad_quality]
+  move-to one-of patches with [pcolor = cyan]
+  set habitat "fresh"
+  set state "healthy"
+  set sea-time 0
 end
 
-to check-quality
-  ifelse state = "parasitised" [ set quality quality - paras_quality] [set quality quality + anad_quality]
-end
+;to check-quality
+;  ifelse state = "parasitised" [ set quality quality - paras_quality] [set quality quality + anad_quality]
+;end
+
 
 ; females choose up to 5 male mates from a pool of males in freshwater habitat over a certain age in their radius
 ; females choose the males based on the quality of the males
@@ -439,56 +436,43 @@ end
 to reproduce
   if count mates > 0
    [
-       ; set time-since-repro 0
-       ; let fecundity   L / (1 + exp(- k * (quality - mass0)))
-        let fecundity ( a * quality ^ b ) / 50
-        set FecAcc FecAcc + round fecundity ; added round here to keep the values as integers
-        hatch round fecundity
-        [
-          set mother myself
-          set motherID [who] of mother
+      ; set time-since-repro 0
+      ; let fecundity   L / (1 + exp(- k * (quality - mass0)))
+      let fecundity ( a * quality ^ b ) * SurvRate ; / 50
+      set FecAcc FecAcc + round fecundity ; added round here to keep the values as integers
+      hatch round fecundity
+      [
+        set mother myself
+        set motherID [who] of mother
 
-          set father one-of [mates] of mother
-          set fatherID [who] of father
+        set father one-of [mates] of mother
+        set fatherID [who] of father
 
-          let motherGM [GM] of mother
-          let motherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column motherGM random 2]]
-          let fatherGM [GM] of father
-          let fatherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column fatherGM random 2]]
-          set GM matrix:from-row-list n-values 21 [n-values 2 [i -> 0]]
-          matrix:set-column GM 0 matrix:get-row motherLocus 0
-          matrix:set-column GM 1 matrix:get-row fatherLocus 0
+        let motherGM [GM] of mother
+        let motherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column motherGM random 2]]
+        let fatherGM [GM] of father
+        let fatherLocus matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column fatherGM random 2]]
+        set GM matrix:from-row-list n-values 21 [n-values 2 [i -> 0]]
+        matrix:set-column GM 0 matrix:get-row motherLocus 0
+        matrix:set-column GM 1 matrix:get-row fatherLocus 0
 
-          set habitat "fresh"
-          set state "healthy"
-          set age 0
-          set mates (turtle-set)
-          ifelse random 2 = 1
-           [
-            set color red
-            set sex "male"
-           ]
-           [
-            set color grey
-            set sex "female"
-           ]
+        set habitat "fresh"
+        set state "healthy"
+        set age 0
+        set mates (turtle-set)
+        ifelse random 2 = 1
+         [
+          set color red
+          set sex "male"
+         ]
+         [
+          set color grey
+          set sex "female"
+         ]
 
-          set-migratory-behaviour
+        set-migratory-behaviour
       ]
   ]
-end
-
-;; kill turtles in excess of carrying capacity
-to grim-reaper
-;      if count turtles > carryingCapacity [ ;;that's already being asked in the go procedure
- let freshwaters turtles with [habitat = "fresh"]
- let max-age max [age] of freshwaters
- ask rnd:weighted-n-of (count freshwaters - carryingCapacity) freshwaters [max-age - age ] [ die ]
-;  ]
-
-;  let num-turtles count turtles with [habitat = "fresh"]
-;  let chance-to-die (num-turtles - carryingCapacity) / num-turtles
-;  if random-float 1.0 < chance-to-die [ die ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -583,7 +567,7 @@ n-trout
 n-trout
 0
 5000
-80.0
+500.0
 1
 1
 NIL
@@ -672,8 +656,8 @@ SLIDER
 mortalityM
 mortalityM
 0
-.004
-1.1E-4
+1
+0.0165
 .00001
 1
 NIL
@@ -685,7 +669,7 @@ INPUTBOX
 142
 305
 anad-death-multiplierM
-2.0
+1.0
 1
 0
 Number
@@ -709,8 +693,8 @@ SLIDER
 mortalityF
 mortalityF
 0
-0.004
-1.1E-4
+1
+0.0165
 .00001
 1
 NIL
@@ -722,7 +706,7 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-2.0
+1.0
 1
 0
 Number
@@ -1088,7 +1072,7 @@ INPUTBOX
 1235
 542
 res_quality_mean
-200.0
+240.0
 1
 0
 Number
@@ -1110,7 +1094,7 @@ INPUTBOX
 1237
 664
 anad_quality
-100.0
+85.0
 1
 0
 Number
@@ -1184,7 +1168,7 @@ sneaker_thresh
 sneaker_thresh
 0.6
 0.9
-0.8
+0.9
 0.1
 1
 NIL
@@ -1197,10 +1181,10 @@ SLIDER
 597
 sneaker_boost
 sneaker_boost
-100
+0
 300
-200.0
-100
+100.0
+5
 1
 NIL
 HORIZONTAL
