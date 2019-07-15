@@ -32,7 +32,7 @@ globals
  ; k
  ; mass0
 
-GM_WMT ;; ADAM CHANGES 15/07/2019
+
 
 
 ] ;; added start-time and current-time
@@ -152,6 +152,10 @@ set WM matrix:from-column-list
     ]
   ]
 
+
+  if shuffle? [  set WM shuffled-matrix WM
+  print matrix:pretty-print-text WM]
+
 ;set WMc matrix-row-manipulation WM 0 0 n-loci-sign -1
 set WMc matrix:transpose (matrix-row-manipulation matrix:transpose WM 0 0 n-loci-sign -1)
 
@@ -173,6 +177,29 @@ set b  2.603
 set SurvRate 0.1
 ;set mass0  150
 
+end
+
+; Reporter returns a shuffled matrix
+to-report shuffled-matrix [ mat ]
+  ; Get the number of columns
+  let cols last matrix:dimensions mat
+
+  ; Shuffle the matrix values as a list
+  let shuf-vals shuffle reduce sentence matrix:to-row-list mat
+
+  ; Use the shuffled values to generate a new matrix
+  ; with the same dimensions as the original
+  report matrix:from-row-list ( subsetter shuf-vals cols )
+end
+
+; Reporter returns a list cut into sublists
+; based on the len value passed
+to-report subsetter [ ls len ]
+  ; Generate subsetting indices for the sublists
+  let vals ( range 0 ( length ls ) len )
+
+  ; Make subsets of ls based on the subsetting indices
+  report map [ i -> sublist ls i ( i + len ) ] vals
 end
 
 to set-population
@@ -232,10 +259,7 @@ to set-migratory-behaviour
   let col2 matrix:from-row-list n-values 1 [n-values 21 [i -> item i matrix:get-column GM 1]]
   let sum-G-matrix col1 matrix:+ col2
 ;  let GM_WMT  matrix:times sum-G-matrix WMT
-
-  ;let GM_WMT  matrix:times sum-G-matrix WM ; ADAM CHANGE 15/07/2015
-  ifelse sex = "female" [set GM_WMT  matrix:times sum-G-matrix WM] [set GM_WMT  matrix:times sum-G-matrix WMc] ; ADAM CHANGE 15/07/2019
-
+  let GM_WMT  matrix:times sum-G-matrix WM
   ifelse evolution?
   [set G matrix:get GM_WMT 0 0][ifelse sex = "female" [set G Gpf] [set G Gpm]]
 
@@ -1200,7 +1224,7 @@ CHOOSER
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-0
+10
 
 MONITOR
 9
@@ -1291,6 +1315,17 @@ TEXTBOX
 11
 0.0
 1
+
+SWITCH
+363
+440
+466
+473
+shuffle?
+shuffle?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
