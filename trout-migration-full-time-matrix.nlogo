@@ -32,7 +32,7 @@ globals
  ; k
  ; mass0
 
-GM_WMT ;; ADAM CHANGES 15/07/2019
+;GM_WMT ;; ADAM CHANGES 15/07/2019
 
 
 ] ;; added start-time and current-time
@@ -233,7 +233,7 @@ to set-migratory-behaviour
   let sum-G-matrix col1 matrix:+ col2
 ;  let GM_WMT  matrix:times sum-G-matrix WMT
 
-  ;let GM_WMT  matrix:times sum-G-matrix WM ; ADAM CHANGE 15/07/2015
+  let GM_WMT  matrix:times sum-G-matrix WM ; ADAM CHANGE 15/07/2015
   ifelse sex = "female" [set GM_WMT  matrix:times sum-G-matrix WM] [set GM_WMT  matrix:times sum-G-matrix WMc] ; ADAM CHANGE 15/07/2019
 
   ifelse evolution?
