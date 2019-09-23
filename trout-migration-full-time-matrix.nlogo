@@ -168,8 +168,8 @@ set V_cond  2.94706   ; variance of the condition trait (in this case, all the p
 ; these values determine the fecundity of the female fish as a function of her quality - they feed into an allometric equation
 ; http://www.freshwaterlife.org/projects/media/projects/images/1/50094_ca_object_representations_media_163_original.pdf
   ; N = a*L^b, where L is length in mm so we'd expect a 200mm fish to produce 0.000238781 * 200 ^ 2.603 =
-set a  0.000238781 ; log10(a) = -3.622
-set b  2.603
+set a  0.0000866 ; log10(a) = -4.0623
+set b  2.7514
 set SurvRate 0.1
 ;set mass0  150
 
@@ -177,15 +177,13 @@ end
 
 to set-population
   ; create the population of trout in the freshwater habitat
-  ask n-of n-trout patches with [pcolor = cyan]
+  create-turtles n-trout
   [
-   sprout 1
-   [
     ifelse random 2 = 1
       [set sex "male" set color red]
       [set sex "female" set color grey]
 
-
+    move-to one-of patches with [pcolor = cyan]
     set habitat "fresh" ; all fish start off in freshwater
     set state "healthy" ; all fish start off without parasites
     set mates (turtle-set)
@@ -196,9 +194,6 @@ to set-population
     set GM matrix:from-row-list n-values 21 [n-values 2 [i -> random 2]]
     set-migratory-behaviour
   ]
-]
-
-
 end
 
 ; this function is used to set out how the matrices are populated
@@ -343,8 +338,8 @@ to mortality
      ]
      [
       ifelse state = "healthy"
-        [ set prob-deathM mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
-        [ set prob-deathM mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
+        [ set prob-deathM anad-death-multiplierM] ; mortalityM * anad-death-multiplierM  ]                 ; higher likelihood of death while at sea
+          [ set prob-deathM anad-death-multiplierM * parasite-load] ;mortalityM * anad-death-multiplierM * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
       if random-float 1 < prob-deathM [die] ; death procedure
      ]
    ]
@@ -357,8 +352,8 @@ to mortality
        if random-float 1 < prob-deathF [die] ] ; chance of dying on any turn in freshwater
       [
        ifelse state = "healthy"
-        [ set prob-deathF mortalityF * anad-death-multiplierF ]                  ; higher likelihood of death while at sea
-        [ set prob-deathF mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
+        [ set prob-deathF anad-death-multiplierF] ; mortalityF * anad-death-multiplierF ]                  ; higher likelihood of death while at sea
+        [ set prob-deathF anad-death-multiplierF * parasite-load] ; mortalityF * anad-death-multiplierF * parasite-load ]  ; higher likelihood again of dying if parasitized while at sea
        if random-float 1 < prob-deathF [die]
       ]
     ]
@@ -404,7 +399,7 @@ to migrate-to-freshwater
   ;; fish update their quality after the time spent at sea, it depends on their state
   ;; parasitised fish become healthy again when they return to freshwater
   ;; this means their quality remains lower but they don't have the increased mortality cost once they return
-  ifelse state = "parasitised" [ set quality quality + anad_quality - paras_quality] [set quality quality + anad_quality]
+  ifelse state = "parasitised" [ set quality quality + (anad_quality * (1 - paras_quality))] [set quality quality + anad_quality]
   move-to one-of patches with [pcolor = cyan]
   set habitat "fresh"
   set state "healthy"
@@ -462,6 +457,7 @@ to reproduce
         set habitat "fresh"
         set state "healthy"
         set age 0
+        set FecAcc 0
         set mates (turtle-set)
         ifelse random 2 = 1
          [
@@ -569,8 +565,8 @@ SLIDER
 n-trout
 n-trout
 0
-5000
-500.0
+10000
+6000.0
 1
 1
 NIL
@@ -641,10 +637,10 @@ count turtles with [sex = \"female\" and anadromous = false]
 11
 
 MONITOR
-143
-81
-209
-126
+140
+79
+206
+124
 total trout 
 count turtles
 17
@@ -660,28 +656,28 @@ mortalityM
 mortalityM
 0
 1
-0.0165
+0.02078
 .00001
 1
 NIL
 HORIZONTAL
 
 INPUTBOX
-11
-245
-142
-305
+9
+246
+140
+306
 anad-death-multiplierM
-1.0
+0.0221
 1
 0
 Number
 
 MONITOR
-148
-33
-205
-78
+104
+150
+161
+195
 NIL
 year
 17
@@ -697,7 +693,7 @@ mortalityF
 mortalityF
 0
 1
-0.0165
+0.02078
 .00001
 1
 NIL
@@ -709,16 +705,16 @@ INPUTBOX
 138
 442
 anad-death-multiplierF
-1.0
+0.0221
 1
 0
 Number
 
 SLIDER
-8
-495
-180
-528
+7
+514
+179
+547
 female-mate-radius
 female-mate-radius
 0
@@ -752,29 +748,29 @@ PENS
 
 SLIDER
 7
-528
+462
 179
-561
+495
 carryingCapacity
 carryingCapacity
 0
 100000
-500.0
+3000.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-7
-560
-179
-593
+8
+569
+163
+602
 prop-parasites
 prop-parasites
 0.00
 1
-0.05
+0.0
 0.01
 1
 NIL
@@ -809,7 +805,7 @@ NIL
 0.0
 20.0
 0.0
-10.0
+20.0
 true
 false
 "" ""
@@ -827,7 +823,7 @@ NIL
 0.0
 20.0
 0.0
-10.0
+20.0
 true
 false
 "" ""
@@ -835,24 +831,24 @@ PENS
 "default" 0.5 1 -16777216 true "" "histogram [G] of turtles with [sex = \"male\"] "
 
 INPUTBOX
-3
-604
-158
-664
+8
+603
+163
+663
 parasite-load
-0.0
+1.4
 1
 0
 Number
 
 MONITOR
-872
-10
-929
-55
+870
+13
+930
+58
 mean
 mean [G] of turtles with [sex = \"female\"]
-5
+4
 1
 11
 
@@ -885,7 +881,7 @@ MONITOR
 55
 mean
 mean [G] of turtles with [sex = \"male\"]
-5
+4
 1
 11
 
@@ -1070,21 +1066,21 @@ count turtles with [sex = \"female\" and anadromous = true] / count turtles with
 11
 
 INPUTBOX
-1080
-482
-1235
-542
+244
+666
+399
+726
 res_quality_mean
-240.0
+175.0
 1
 0
 Number
 
 INPUTBOX
-1241
-483
-1396
-543
+398
+666
+553
+726
 res_quality_sd
 10.0
 1
@@ -1092,21 +1088,21 @@ res_quality_sd
 Number
 
 INPUTBOX
-1082
-604
-1237
-664
+244
+726
+399
+786
 anad_quality
-85.0
+225.0
 1
 0
 Number
 
 INPUTBOX
-1243
-606
-1398
-666
+398
+726
+553
+786
 anad_quality_sd
 0.0
 1
@@ -1114,21 +1110,21 @@ anad_quality_sd
 Number
 
 INPUTBOX
-1082
-544
-1237
-604
+244
+785
+399
+845
 paras_quality
-10.0
+0.4
 1
 0
 Number
 
 SWITCH
-248
-490
-353
-523
+246
+439
+351
+472
 sneaker?
 sneaker?
 1
@@ -1136,10 +1132,10 @@ sneaker?
 -1000
 
 TEXTBOX
-370
-491
-478
-519
+368
+440
+476
+468
 sneaker tactic by resident males
 11
 0.0
@@ -1163,10 +1159,10 @@ NIL
 1
 
 SLIDER
-247
-528
-368
-561
+245
+477
+366
+510
 sneaker_thresh
 sneaker_thresh
 0.6
@@ -1178,15 +1174,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-247
-564
-369
-597
+245
+513
+367
+546
 sneaker_boost
 sneaker_boost
 0
 300
-100.0
+300.0
 5
 1
 NIL
@@ -1194,9 +1190,9 @@ HORIZONTAL
 
 CHOOSER
 476
-488
+479
 614
-533
+524
 n-loci-sign
 n-loci-sign
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
@@ -1205,7 +1201,7 @@ n-loci-sign
 MONITOR
 9
 150
-182
+104
 195
 Current time
 time:show current-time \"yyyy-MM-dd\"
@@ -1215,9 +1211,9 @@ time:show current-time \"yyyy-MM-dd\"
 
 TEXTBOX
 482
-544
+535
 632
-586
+577
 controls the number of loci that have a different sign in the males
 11
 0.0
@@ -1246,10 +1242,10 @@ count turtles with [anadromous = true] / count turtles
 11
 
 SLIDER
-247
-603
-370
-636
+245
+552
+368
+585
 sneaker_radius
 sneaker_radius
 0
@@ -1272,10 +1268,10 @@ evolution?
 -1000
 
 INPUTBOX
-677
-506
-832
-566
+244
+596
+399
+656
 lifespan
 416.0
 1
@@ -1283,14 +1279,85 @@ lifespan
 Number
 
 TEXTBOX
-842
-507
-992
-563
+409
+597
+559
+653
 260 = 5 years in weeks\n312 = 6 years in weeks\n364 = 7 years in weeks\n416 = 8 years in weeks\n
 11
 0.0
 1
+
+MONITOR
+683
+710
+771
+755
+Spawners res
+count turtles with [anadromous = False and FecAcc > 0]
+17
+1
+11
+
+MONITOR
+770
+710
+868
+755
+Spawners anad
+count turtles with [anadromous = True and FecAcc > 0]
+17
+1
+11
+
+PLOT
+973
+508
+1261
+695
+Strategy spawners
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Resid" 1.0 0 -13345367 true "" "plot count turtles with [anadromous = False and FecAcc > 0]"
+"Anad" 1.0 0 -2674135 true "" "plot count turtles with [anadromous = True and FecAcc > 0]"
+
+MONITOR
+867
+710
+968
+755
+Prop anad/resid
+count turtles with [anadromous = True and FecAcc > 0] / count turtles with [anadromous = False and FecAcc > 0]
+5
+1
+11
+
+PLOT
+669
+509
+962
+696
+Prop spawners anad / resid
+NIL
+NIL
+0.0
+1.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -2674135 true "" "ifelse (count turtles with [anadromous = False and FecAcc > 0]) > 0\n[plot count turtles with [anadromous = True and FecAcc > 0] / count turtles with [anadromous = False and FecAcc > 0]]\n[plot 0]"
+"pen-1" 1.0 0 -16777216 true "" "plot 1"
 
 @#$#@#$#@
 ## WHAT IS IT?
